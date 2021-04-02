@@ -3,12 +3,12 @@ I'm developing an app that makes the Resolve Live Collaboration features better,
 
 # Features
 Under development
-- Give a status list of PostgreSQL database connections, even before launching Resolve (currently the alternative is waiting the ~3-4 mins for Resolve to start, only to realize you have to reboot Resolve to re-establish the connection)[/list]
-- Give a status list of all Users, whether they're connected to the server, when they were last seen online, and which project they're in[/list]
-- Give a status list of projects, when they were last updated, and (ideally) by whom[/list]
-- Simplify connecting to a WireGuard Tunnel for over-the-internet work[/list]
-- Status updates of connection speed/ping through the VPN and to the Project Server[/list]
-- Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?[/list]
+- Give a status list of PostgreSQL database connections, even before launching Resolve (currently the alternative is waiting the ~3-4 mins for Resolve to start, only to realize you have to reboot Resolve to re-establish the connection)
+- Give a status list of all Users, whether they're connected to the server, when they were last seen online, and which project they're in
+- Give a status list of projects, when they were last updated, and (ideally) by whom
+- Simplify connecting to a WireGuard Tunnel for over-the-internet work
+- Status updates of connection speed/ping through the VPN and to the Project Server
+- Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?
 
 Implemented
 - No app yet, except a documented implementation that works
