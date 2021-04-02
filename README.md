@@ -1,5 +1,4 @@
 # ResolveCollaboration
-## Streamlining and Extending DaVinci Resolve's Live Collaboration
 I'm developing an app that makes the Resolve Live Collaboration features better, and makes them work over the internet in a secure manner.
 
 # Features
