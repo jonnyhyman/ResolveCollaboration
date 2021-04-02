@@ -11,7 +11,7 @@ Under development
 - Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?[/list]
 
 Implemented
-- Nothing yet, except an example implementation
+- No app yet, except a documented implementation that works
 - Discoveries about the backend / internals of Resolve and how it deals with collaboration (see Discoveries.md)
 
 # Motivation
