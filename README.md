@@ -28,16 +28,19 @@ TODO:
 Note that this walkthrough was made when the GUI wasn't visually complete. But the  terminology and process is exactly the same
 
 First, launch main.py on both Server and client:
+
 <img src=
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.29.00%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 On the server, switch from Client context to Server context by clicking **Client**
+
 <img src=
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.07%20AM.png?raw=true"
 alt="drawing" width="250"/>
 
 Create a password for the authentication server, or type in a password previously created. Optionally, supply the Public Key of the Wireguard interface of the server if one already exists. **Leave Public Key blank if there is no Wireguard server configuration yet.**
+
 <img src="
 https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true
 " alt="drawing" width="250"/>
@@ -64,10 +67,12 @@ Once the client has done entered this prompt, click **Authenticate** to launch t
 alt="drawing" width="500"/>
 
 If authentication was successful, you will see the following message on the client
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.36.48%20AM.png?raw=true"
 alt="drawing" width="250"/>
 
 If authentication was successful, you will see the following message on the server
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.37.14%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
@@ -77,18 +82,22 @@ Next, save the new authenticated connection to the Server `.conf` file we create
 alt="drawing" width="500"/>
 
 Likewise, save the Wireguard client configuration somewhere
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.37.54%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 On the client side, open up the Wireguard app [available for download here on all platforms here](https://www.Wireguard.com/install/) and click **Import tunnel(s) from file** and open the client configuration file you just created.
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.40.51%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 On the server side, open up the Wireguard app [available for download here on all platforms here](https://www.Wireguard.com/install/) and click **Import tunnel(s) from file** and open the server configuration file you just created.
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.42.51%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 For a Windows server, to give clients access your internet connection, you must modify the internet adapter you're connected to the internet with. For me, that's `Ethernet 2`
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.44.27%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
@@ -98,14 +107,17 @@ Go to the Sharing tab, check both boxes, and select the Wireguard server you cre
 alt="drawing" width="250"/>
 
 Now, fire up the Wireguard server!
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.43.25%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 And fire up the Wireguard client! *(Note that it might look like its connected even if its not)*
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.46.27%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 If the connection was *actually* successful, the server will see a connected peer with a handshake
+
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.14.07%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
