@@ -90,7 +90,6 @@ class Window(QWidget):
 
         self.app = app
         self.setWindowTitle("Resolve Mission Control")
-        # self.setStyleSheet(f"Window {{ background-color: {colors['dark']}; }}")
 
         self.lay = QVBoxLayout(self)
 
@@ -113,10 +112,6 @@ class Window(QWidget):
         self.context_lay.addWidget( self.context_reconn )
 
         self.init_resolveview()
-
-        # stylesheets
-        # self.context_switch.setStyleSheet(QPushButton_style)
-        # self.context_action.setStyleSheet(QPushButton_style)
 
     def toggle_context(self, state):
 
@@ -256,6 +251,10 @@ class Window(QWidget):
         self.resolvedb_connect = False
 
         # People
+        self.label = QLabel("### People")
+        self.label.setTextFormat(Qt.MarkdownText)
+        self.lay.addWidget(self.label)
+
         people = self.resolvedb_users()
         model = pandasModel(people)
         self.people_view = QTableView()
@@ -263,6 +262,10 @@ class Window(QWidget):
         self.lay.addWidget(self.people_view)
 
         # Projects
+        self.label = QLabel("### Projects")
+        self.label.setTextFormat(Qt.MarkdownText)
+        self.lay.addWidget(self.label)
+
         model = pandasModel(self.resolvedb_projects(people))
         self.projects_view = QTableView()
         self.projects_view.setModel(model)
