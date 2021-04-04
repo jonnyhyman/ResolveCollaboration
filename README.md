@@ -19,10 +19,11 @@ This project is seriously in development, I've only tested on the following conf
 - Give a status list of project database connections (allows you to check connection status before launching Resolve)
 - Give a status list of projects, and who is editing them
 
-TODO:
+# TODO:
 - **Package into an executable form (may require custom implementing some of the dependencies)**
 - Status updates of connection speed/ping through the VPN and to the Project Server
 - Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?
+- Match the visual style to Resolve using Qt stylesheets
 
 # Dependencies
 This program will not work without the following python packages.
