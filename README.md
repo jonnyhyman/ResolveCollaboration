@@ -145,3 +145,8 @@ And that's it! **Fire up Resolve and connect to the Project Server along with yo
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.51.56%20AM.png?raw=true"
 alt="drawing" width="500"/>
+
+# Contributing
+- I welcome *anyone* to contribute to this project, regardless of skill level - and I'll try to be prompt about pull requests. 
+- Alpha testers are welcome to post their issues in the `Issues` tab on this repo so that things can be improved/expanded.
+- If anyone has issues with the security model, please do post an Issue. This is my first project dealing with secure connections, and I think that it's pretty solid but I'm not entirely sure. 
