@@ -9,7 +9,7 @@ alt="drawing" width="500"/>
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow.png?raw=true"
 alt="drawing" width="1000"/>
 
-# Status
+# Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
 - Windows running Resolve 17's Project Server (PostgreSQL) and the Wireguard Server
 - macOS clients on Resolve 17
