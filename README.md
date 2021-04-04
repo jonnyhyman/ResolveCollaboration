@@ -20,8 +20,17 @@ This project is seriously in development, I've only tested on the following conf
 - Give a status list of projects, and who is editing them
 
 TODO:
+- **Package into an executable form (may require custom implementing some of the dependencies)**
 - Status updates of connection speed/ping through the VPN and to the Project Server
 - Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?
+
+# Dependencies
+This program will not work without the following python packages.
+- `pip install PyQt5`
+- `pip install cryptography`
+- `pip install pandas`
+- `pip install psycopg2`
+- `pip install wgnlpy` *TODO: this dependency can almost certainly be replaced with another private/public key generator*
 
 # Setup Example
 
