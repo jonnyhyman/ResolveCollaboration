@@ -56,9 +56,9 @@ alt="drawing" width="250"/>
 
 Create a password for the authentication server, or type in a password previously created. Optionally, supply the Public Key of the Wireguard interface of the server if one already exists. **Leave Public Key blank if there is no Wireguard server configuration yet.**
 
-<img src="
-https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true
-" alt="drawing" width="250"/>
+<img src=
+"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true" 
+alt="drawing" width="250"/>
 
 If you left Public Key blank, save the configuration file containing the server's private key and interface information
 
