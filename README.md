@@ -1,3 +1,6 @@
+<img src=
+"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true" 
+alt="drawing" width="75"/>
 # ResolveCollaboration
 Makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
 
