@@ -14,6 +14,8 @@ alt="drawing" width="1000"/>
 
 ## Builds:
 - **MacOS** - [Download v0.0 Alpha](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+- **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
+- **Linux** - *Help appreciated!*
 
 ## Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
