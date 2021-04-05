@@ -1,6 +1,5 @@
 # ResolveCollaboration
 Makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
-[macOS App](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.51.56%20AM.png?raw=true"
 alt="drawing" width="500"/>
@@ -9,6 +8,9 @@ alt="drawing" width="500"/>
 <img src=
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow.png?raw=true"
 alt="drawing" width="1000"/>
+
+# Downloads:
+- MacOS : [Version 0.0 Alpha 0](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
 
 # Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
