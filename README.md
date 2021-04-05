@@ -51,11 +51,7 @@ Running with Python will not work without the following python packages:
 #### Walkthrough
 Note that this walkthrough was made when the GUI wasn't visually complete. But the  terminology and process is exactly the same
 
-First, launch main.py on both Server and client:
-
-<img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.29.00%20AM.png?raw=true"
-alt="drawing" width="500"/>
+First, launch the app on both Server and client. If you're running a packaged app, just open it. If you're running from python, run: `python collab/resolve_collab.py`
 
 On the server, switch from Client context to Server context by clicking **Client**
 
