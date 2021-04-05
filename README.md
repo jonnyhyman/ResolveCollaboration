@@ -9,7 +9,7 @@ alt="drawing" width="500"/>
 
 
 <img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow.png?raw=true"
+"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow@4x.png?raw=true"
 alt="drawing" width="1000"/>
 
 ## Builds:
