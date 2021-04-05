@@ -14,8 +14,8 @@ This project is seriously in development, I've only tested on the following conf
 - Windows running Resolve 17's Project Server (PostgreSQL) and the Wireguard Server
 - macOS clients on Resolve 17
 
-## [Download macOS Application](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
-## TODO: *Download for Windows 10*
+= [Download macOS Application](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+- TODO: *Download for Windows 10*
 
 # Features
 - Simplifies connecting to a Wireguard Tunnel for over-the-internet collaboration
