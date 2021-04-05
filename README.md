@@ -9,21 +9,34 @@ alt="drawing" width="500"/>
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow.png?raw=true"
 alt="drawing" width="1000"/>
 
-# Status
+## Builds:
+- **MacOS** - [Download v0.0 Alpha](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+
+## Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
 - Windows running Resolve 17's Project Server (PostgreSQL) and the Wireguard Server
 - macOS clients on Resolve 17
 
-# Features
+## Features
 - Simplifies connecting to a Wireguard Tunnel for over-the-internet collaboration
 - Give a status list of project database connections (allows you to check connection status before launching Resolve)
 - Give a status list of projects, and who is editing them
 
-TODO:
+## TODO:
+- **Package into an executable form (may require custom implementing some of the dependencies)**
 - Status updates of connection speed/ping through the VPN and to the Project Server
 - Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?
+- Match the visual style to Resolve using Qt stylesheets
 
-# Setup Example
+## Dependencies
+Running with Python will not work without the following python packages:
+- `pip install PyQt5`
+- `pip install cryptography`
+- `pip install pandas`
+- `pip install psycopg2`
+- `pip install wgnlpy` *TODO: this dependency can almost certainly be replaced with another private/public key generator*
+
+## Setup Example
 
 #### Context
 - There are at least two sides to collaboration!
@@ -47,9 +60,9 @@ alt="drawing" width="250"/>
 
 Create a password for the authentication server, or type in a password previously created. Optionally, supply the Public Key of the Wireguard interface of the server if one already exists. **Leave Public Key blank if there is no Wireguard server configuration yet.**
 
-<img src="
-https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true
-" alt="drawing" width="250"/>
+<img src=
+"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true" 
+alt="drawing" width="250"/>
 
 If you left Public Key blank, save the configuration file containing the server's private key and interface information
 
@@ -136,3 +149,8 @@ And that's it! **Fire up Resolve and connect to the Project Server along with yo
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.51.56%20AM.png?raw=true"
 alt="drawing" width="500"/>
+
+# Contributing
+- I welcome *anyone* to contribute to this project, regardless of skill level - and I'll try to be prompt about pull requests. 
+- Alpha testers are welcome to post their issues in the `Issues` tab on this repo so that things can be improved/expanded.
+- If anyone has issues with the security model, please do post an Issue. This is my first project dealing with secure connections, and I think that it's pretty solid but I'm not entirely sure. 
