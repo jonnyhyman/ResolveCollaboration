@@ -28,7 +28,7 @@ import base64
 import datetime
 
 # local imports
-from styles import *
+# from styles import *
 
 # helper functions
 def passkey(password):
@@ -851,7 +851,7 @@ class DatabaseAuth(QDialog):
         self.DB_NAME.setPlaceholderText("Database Name")
 
         self.DB_PASS = QtWidgets.QLineEdit()
-        self.DB_PASS.setPlaceholderText("Database User")
+        self.DB_PASS.setPlaceholderText("Database Password")
 
         layout.addWidget(self.DB_NAME)
         layout.addWidget(self.DB_PASS)
