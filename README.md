@@ -1,3 +1,6 @@
+<img src=
+"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true" 
+alt="drawing" width="75"/>
 # ResolveCollaboration
 Makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
 
@@ -11,6 +14,8 @@ alt="drawing" width="1000"/>
 
 ## Builds:
 - **MacOS** - [Download v0.0 Alpha](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+- **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
+- **Linux** - *Help appreciated!*
 
 ## Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
@@ -22,8 +27,7 @@ This project is seriously in development, I've only tested on the following conf
 - Give a status list of project database connections (allows you to check connection status before launching Resolve)
 - Give a status list of projects, and who is editing them
 
-## TODO:
-- **Package into an executable form (may require custom implementing some of the dependencies)**
+## To do (help wanted!)
 - Status updates of connection speed/ping through the VPN and to the Project Server
 - Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?
 - Match the visual style to Resolve using Qt stylesheets
@@ -46,11 +50,7 @@ Running with Python will not work without the following python packages:
 #### Walkthrough
 Note that this walkthrough was made when the GUI wasn't visually complete. But the  terminology and process is exactly the same
 
-First, launch main.py on both Server and client:
-
-<img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.29.00%20AM.png?raw=true"
-alt="drawing" width="500"/>
+First, launch the app on both Server and client. If you're running a packaged app, just open it. If you're running from python, run: `python collab/resolve_collab.py`
 
 On the server, switch from Client context to Server context by clicking **Client**
 
