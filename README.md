@@ -9,34 +9,34 @@ alt="drawing" width="500"/>
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow.png?raw=true"
 alt="drawing" width="1000"/>
 
-# Downloads:
-- MacOS : [Version 0.0 Alpha 0](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+## Builds:
+- **MacOS** - [Download v0.0 Alpha](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
 
-# Status: *Alpha*
+## Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
 - Windows running Resolve 17's Project Server (PostgreSQL) and the Wireguard Server
 - macOS clients on Resolve 17
 
-# Features
+## Features
 - Simplifies connecting to a Wireguard Tunnel for over-the-internet collaboration
 - Give a status list of project database connections (allows you to check connection status before launching Resolve)
 - Give a status list of projects, and who is editing them
 
-# TODO:
+## TODO:
 - **Package into an executable form (may require custom implementing some of the dependencies)**
 - Status updates of connection speed/ping through the VPN and to the Project Server
 - Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?
 - Match the visual style to Resolve using Qt stylesheets
 
-# Dependencies
-This program will not work without the following python packages.
+## Dependencies
+Running with Python will not work without the following python packages:
 - `pip install PyQt5`
 - `pip install cryptography`
 - `pip install pandas`
 - `pip install psycopg2`
 - `pip install wgnlpy` *TODO: this dependency can almost certainly be replaced with another private/public key generator*
 
-# Setup Example
+## Setup Example
 
 #### Context
 - There are at least two sides to collaboration!
