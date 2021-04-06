@@ -34,7 +34,7 @@ This project is seriously in development, I've only tested on the following conf
 
 ## Dependencies
 Running with Python will not work without the following python packages:
-- `pip install PyQt5 cryptography pandas psycopg2 wgnlpy`
+- `pip install PyQt5 cryptography pandas psycopg2-binary wgnlpy`
 
 ## Setup Example
 
