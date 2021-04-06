@@ -37,7 +37,7 @@ Running with Python will not work without the following python packages:
 - `pip install PyQt5`
 - `pip install cryptography`
 - `pip install pandas`
-- `pip install psycopg2`
+- `pip install psycopg2` or `pip install psycopg2-binary` if the first one errors out
 - `pip install wgnlpy` *TODO: this dependency can almost certainly be replaced with another private/public key generator*
 
 ## Setup Example
