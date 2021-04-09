@@ -13,7 +13,8 @@ alt="drawing" width="500"/>
 alt="drawing" width="1000"/>
 
 ## Builds:
-- **MacOS** - [Download v0.0 Alpha](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+- **MacOS** - [Download v0.0 Alpha for Catalina](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+  - This .app has been found to fail on Big Sur. I am awaiting the next release of `pyinstaller` which addresses bugs related to Big Sur builds.
 - **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
 - **Linux** - *Help appreciated!*
 
