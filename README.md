@@ -1,7 +1,7 @@
 <img src=
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true" 
 alt="drawing" width="75"/>
-# ResolveCollaboration
+# Resolve Collaboration
 Makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.51.56%20AM.png?raw=true"
@@ -28,10 +28,13 @@ This project is seriously in development, I've only tested on the following conf
 - Give a status list of project database connections (allows you to check connection status before launching Resolve)
 - Give a status list of projects, and who is editing them
 
-## To do (help wanted!)
-- Status updates of connection speed/ping through the VPN and to the Project Server
-- Provide user-friendly symlink generation so that media addresses can be linked across systems (Windows C:/... to Mac /Users/... or wherever your paths are). This is supposedly doable using Mapped Media in Resolve but this seems to be a bit shoddy. Hopefully there can be a multiplatform symlink solution?
-- Match the visual style to Resolve using Qt stylesheets
+## Roadmap (help wanted!)
+- Match the visual style to Resolve with Qt stylesheets for `QPushButton`, `QTableView`, `QDialog`, and `QWindow`
+- Keep login details stored for database connections
+- Secure the Server-side authentication database (currently just a .csv file)
+- Host/control the WireGuard client from within the ResolveCollaboration codebase
+- Status updates of connection speed/ping through the VPN and to the Project Server for all clients
+- Move authentication port to same port as WireGuard so only one port forward needed for TCP+UDP
 
 ## Dependencies
 Running with Python will not work without the following python packages:
