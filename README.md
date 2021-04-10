@@ -17,7 +17,7 @@ alt="drawing" width="1000"/>
 - **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
 - **Linux** - *Help appreciated!*
 
-**NOTE: The app takes about 30seconds to launch**
+**NOTE: The app can take about 30seconds to launch, and on macOS the icon will disappear from the dock after bouncing for about 20 seconds**
 
 ## Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
