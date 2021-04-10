@@ -14,9 +14,10 @@ alt="drawing" width="1000"/>
 
 ## Builds:
 - **MacOS** - [Download v0.0 Alpha 1](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.0.1/Resolve.Collaboration.zip)
-  - This .app has been found to fail on Big Sur. I am awaiting the next release of `pyinstaller` which addresses bugs related to Big Sur builds.
 - **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
 - **Linux** - *Help appreciated!*
+
+**NOTE: The app takes about 30seconds to launch**
 
 ## Status: *Alpha*
 This project is seriously in development, I've only tested on the following configuration:
