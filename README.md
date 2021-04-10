@@ -13,7 +13,7 @@ alt="drawing" width="500"/>
 alt="drawing" width="1000"/>
 
 ## Builds:
-- **MacOS** - [Download v0.0 Alpha 1](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.0.1/Resolve.Collaboration.zip)
+- **MacOS** - [Download v0.0 Alpha 1](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.0.1/macOS-Resolve.Collaboration-v0.0.1.zip)
 - **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
 - **Linux** - *Help appreciated!*
 
