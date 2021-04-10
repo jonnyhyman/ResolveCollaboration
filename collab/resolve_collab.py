@@ -1,17 +1,52 @@
 # package imports
-from PyQt5.QtCore import Qt
-from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QPushButton,
-                             QLabel, QSizePolicy, QSlider, QSpacerItem,
-                             QVBoxLayout, QWidget, QDialog, QMessageBox)
-from PyQt5.QtWidgets import QFileDialog, QDialog
-from PyQt5.QtWidgets import QApplication, QTableView
-from PyQt5.QtCore import QAbstractTableModel, Qt
+# from PyQt5.QtCore import Qt
+# from PyQt5 import QtWidgets, QtCore, QtGui
+# from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QPushButton,
+#                              QLabel, QSizePolicy, QSlider, QSpacerItem,
+#                              QVBoxLayout, QWidget, QDialog, QMessageBox)
+# from PyQt5.QtWidgets import QFileDialog, QDialog
+# from PyQt5.QtWidgets import QApplication, QTableView
+# from PyQt5.QtCore import QAbstractTableModel, Qt
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
-from cryptography.fernet import Fernet, InvalidToken
-from cryptography.hazmat.primitives import hashes
+from PyQt5 import QtWidgets, QtCore, QtGui
+Qt = QtCore.Qt
+
+
+QApplication = QtWidgets.QApplication
+QHBoxLayout = QtWidgets.QHBoxLayout
+QPushButton = QtWidgets.QPushButton
+QLabel = QtWidgets.QLabel
+QSizePolicy = QtWidgets.QSizePolicy
+QSlider = QtWidgets.QSlider
+QSpacerItem = QtWidgets.QSpacerItem
+QVBoxLayout = QtWidgets.QVBoxLayout
+QWidget = QtWidgets.QWidget
+QDialog = QtWidgets.QDialog
+QMessageBox = QtWidgets.QMessageBox
+
+QFileDialog = QtWidgets.QFileDialog
+QDialog = QtWidgets.QDialog
+QApplication = QtWidgets.QApplication
+QTableView = QtWidgets.QTableView
+
+from PyQt5.QtCore import QAbstractTableModel
+
+# from cryptography.hazmat.backends import default_backend
+import cryptography.hazmat.backends
+default_backend = cryptography.hazmat.backends.default_backend
+
+# from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import cryptography.hazmat.primitives.kdf.pbkdf2
+PBKDF2HMAC = cryptography.hazmat.primitives.kdf.pbkdf2.PBKDF2HMAC
+
+#from cryptography.fernet import Fernet, InvalidToken
+import cryptography.fernet
+Fernet = cryptography.fernet.Fernet
+InvalidToken = cryptography.fernet.InvalidToken
+
+# from cryptography.hazmat.primitives import hashes
+import cryptography.hazmat.primitives
+hashes = cryptography.hazmat.primitives.hashes
 
 import pandas as pd
 import psycopg2
@@ -82,7 +117,7 @@ def FileDialog(directory='', forOpen=True, fmt='', isFolder=False):
 class Window(QWidget):
 
     subnet = '9.0.0.0/24'
-    auth_port = 4444
+    auth_port = 4444 # TODO: Test on 51820 instead
     wg_port = 51820
 
     def __init__(self, app, parent=None):
@@ -93,7 +128,7 @@ class Window(QWidget):
 
         self.lay = QVBoxLayout(self)
 
-        self.context_lay = QHBoxLayout(self)
+        self.context_lay = QHBoxLayout()
         self.lay.addLayout(self.context_lay)
 
         self.context_switch = QPushButton("Client")

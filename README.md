@@ -1,5 +1,5 @@
 <img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true" 
+"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true"
 alt="drawing" width="75"/>
 # Resolve Collaboration
 Makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
@@ -13,7 +13,7 @@ alt="drawing" width="500"/>
 alt="drawing" width="1000"/>
 
 ## Builds:
-- **MacOS** - [Download v0.0 Alpha for Catalina](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/v0.0-alpha/Resolve.Collaboration.app.zip)
+- **MacOS** - [Download v0.0 Alpha 1](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.0.1/Resolve.Collaboration.zip)
   - This .app has been found to fail on Big Sur. I am awaiting the next release of `pyinstaller` which addresses bugs related to Big Sur builds.
 - **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
 - **Linux** - *Help appreciated!*
@@ -61,7 +61,7 @@ alt="drawing" width="250"/>
 Create a password for the authentication server, or type in a password previously created. Optionally, supply the Public Key of the Wireguard interface of the server if one already exists. **Leave Public Key blank if there is no Wireguard server configuration yet.**
 
 <img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true" 
+"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true"
 alt="drawing" width="250"/>
 
 If you left Public Key blank, save the configuration file containing the server's private key and interface information
@@ -151,6 +151,6 @@ And that's it! **Fire up Resolve and connect to the Project Server along with yo
 alt="drawing" width="500"/>
 
 # Contributing
-- I welcome *anyone* to contribute to this project, regardless of skill level - and I'll try to be prompt about pull requests. 
+- I welcome *anyone* to contribute to this project, regardless of skill level - and I'll try to be prompt about pull requests.
 - Alpha testers are welcome to post their issues in the `Issues` tab on this repo so that things can be improved/expanded.
-- If anyone has issues with the security model, please do post an Issue. This is my first project dealing with secure connections, and I think that it's pretty solid but I'm not entirely sure. 
+- If anyone has issues with the security model, please do post an Issue. This is my first project dealing with secure connections, and I think that it's pretty solid but I'm not entirely sure.
