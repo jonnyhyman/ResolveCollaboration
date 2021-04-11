@@ -2,43 +2,49 @@
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true"
 alt="drawing" width="75"/>
 # Resolve Collaboration
-Makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
+This project makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.51.56%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
+## Features
+- Provides secure authentication for creating WireGuard Tunnels for over-the-internet collaboration
+- Allows you to check connection status before launching Resolve
+- Gives a status list of projects, and who is editing them
 
-<img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow@4x.png?raw=true"
+<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow@4x.png?raw=true"
 alt="drawing" width="1000"/>
 
-## Builds:
-- **MacOS** - [Download v0.0 Alpha 1](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.0.1/macOS-Resolve.Collaboration-v0.0.1.zip)
-- **Windows** - *.exe is in development, for now, use `python resolve_collab.py`*
-- **Linux** - *Help appreciated!*
+## Build Packages:
+| Platform | Support | Link |
+|:----------:|:----------:|:---------------:|
+| **macOS**  | Tested on Catalina 10.15.7 | [Download](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.0.1/macOS-Resolve.Collaboration-v0.0.1.zip) |
+| **Windows** | Run from source ||
+| **Linux** | Any help appreciated! ||
 
-**NOTE: The app can take about 30seconds to launch, and on macOS the icon will disappear from the dock after bouncing for about 20 seconds**
+**Known Issues:**
+- macOS 
+  - the app bounce in the dock, disappear, and then reappear after ~30sec. [This is a known issues](https://github.com/jonnyhyman/ResolveCollaboration/issues/2)**
 
 ## Status: *Alpha*
-This project is seriously in development, I've only tested on the following configuration:
+This project is in development, I've only tested on the following configuration:
 - Windows running Resolve 17's Project Server (PostgreSQL) and the Wireguard Server
 - macOS clients on Resolve 17
 
-## Features
-- Simplifies connecting to a Wireguard Tunnel for over-the-internet collaboration
-- Give a status list of project database connections (allows you to check connection status before launching Resolve)
-- Give a status list of projects, and who is editing them
-
 ## Roadmap (help wanted!)
+
+Client and Serevr
 - Match the visual style to Resolve with Qt stylesheets for `QPushButton`, `QTableView`, `QDialog`, and `QWindow`
 - Keep login details stored for database connections
 - Secure the Server-side authentication database (currently just a .csv file)
-- Host/control the WireGuard client from within the ResolveCollaboration codebase
-- Status updates of connection speed/ping through the VPN and to the Project Server for all clients
 - Move authentication port to same port as WireGuard so only one port forward needed for TCP+UDP
 
+Server 
+- Host/control the WireGuard client from within the ResolveCollaboration codebase
+- Status updates of connection speed/ping through the VPN and to the Project Server for all clients
+
 ## Dependencies
-Running with Python will not work without the following python packages:
+Running from source requires following python packages:
 - `pip install PyQt5 cryptography pandas psycopg2-binary wgnlpy`
 
 ## Setup Example
