@@ -33,15 +33,15 @@ This project is in development, I've only tested on the following configuration:
 
 ## Roadmap (help wanted!)
 
-Client and Serevr
+Client and Server
 - Match the visual style to Resolve with Qt stylesheets for `QPushButton`, `QTableView`, `QDialog`, and `QWindow`
-- Keep login details stored for database connections
-- Secure the Server-side authentication database (currently just a .csv file)
+- Keep login details stored securely for database connections
 - Move authentication port to same port as WireGuard so only one port forward needed for TCP+UDP
 
 Server 
 - Host/control the WireGuard client from within the ResolveCollaboration codebase
-- Status updates of connection speed/ping through the VPN and to the Project Server for all clients
+- Status updates of connection speed/ping through the VPN and to Project Server for all clients
+- Secure the Server password and user database (currently just a .csv file)
 
 ## Dependencies
 Running from source requires following python packages:
