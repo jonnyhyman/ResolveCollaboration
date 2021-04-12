@@ -4,7 +4,7 @@ alt="drawing" width="75"/>
 # Resolve Collaboration
 This project makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
 
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.51.56%20AM.png?raw=true"
+<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-12%20at%2011.55.11%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 ## Features
