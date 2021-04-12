@@ -38,6 +38,7 @@ Client and Server
 - Keep login details stored securely for database connections
 - Move authentication port to same port as WireGuard so only one port forward needed for TCP+UDP
 - Link in to Dropbox API and Media Mappings to notify (and enumerate) which Project files are not synced yet
+- Move the top-row buttons to a menu-bar context menu
 
 Server 
 - Host/control the WireGuard client from within the ResolveCollaboration codebase
