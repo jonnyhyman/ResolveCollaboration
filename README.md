@@ -37,7 +37,7 @@ Client and Server
 - Match the visual style to Resolve with Qt stylesheets for `QPushButton`, `QTableView`, `QDialog`, and `QWindow`
 - Keep login details stored securely for database connections
 - Move authentication port to same port as WireGuard so only one port forward needed for TCP+UDP
-- Link in to Dropbox API and Media Mappings to notify (and enumerate) which Project files are not synced yet
+- Link in to Dropbox API and Media Mappings to notify (and enumerate) which Project files are not synced yet (download and upload)
 - Move the top-row buttons to a menu-bar context menu
 
 Server 
