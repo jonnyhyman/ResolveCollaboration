@@ -27,7 +27,7 @@ alt="drawing" width="1000"/>
   - The app does not modify `pg_hba.conf` to allow access from authorized IPs. For now, follow the [instructions in this comment](https://github.com/jonnyhyman/ResolveCollaboration/issues/1#issuecomment-822850533)
   - In the Wireguard configuration for clients, change `AllowedIPs = 0.0.0.0/0` to `AllowedIPs = 9.0.0.0/24`
 - macOS 
-  - the app bounce in the dock, disappear, and then reappear after ~30sec. [This is a known issues](https://github.com/jonnyhyman/ResolveCollaboration/issues/2)**
+  - the app bounces in the dock, disappears, and then reappears after ~30sec. [This is a known issue](https://github.com/jonnyhyman/ResolveCollaboration/issues/2)
 
 ## Status: *Alpha*
 This project is in development, I've only tested on the following configuration:
