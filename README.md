@@ -51,7 +51,7 @@ Server
 
 ## Dependencies
 Running from source requires following python packages:
-- `pip install PyQt5 cryptography pandas psycopg2-binary wgnlpy`
+- `pip install PyQt5==5.15.2 cryptography pandas psycopg2-binary wgnlpy`
 
 ## Setup Example
 
