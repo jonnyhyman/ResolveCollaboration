@@ -28,6 +28,7 @@ alt="drawing" width="1000"/>
   - In the Wireguard configuration for clients, change `AllowedIPs = 0.0.0.0/0` to `AllowedIPs = 9.0.0.0/24`
 - macOS 
   - the app bounces in the dock, disappears, and then reappears after ~30sec. [This is a known issue](https://github.com/jonnyhyman/ResolveCollaboration/issues/2)
+  - macOS cannot be used as a server without using the command line [because of reasons outlined (and solved) here](https://barrowclift.me/post/wireguard-server-on-macos)
 
 ## Status: *Alpha*
 This project is in development, I've only tested on the following configuration:
