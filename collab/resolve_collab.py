@@ -113,6 +113,12 @@ def FileDialog(directory='', forOpen=True, fmt='', isFolder=False):
     else:
         return ''
 
+def UpdateHBA():
+    # Use "SHOW hba_file" to get location of hba file
+    # Modify
+    # Restart server: `etc/init.d/postgresql restart` or `systemctl restart postgresql-xx.service` or something else
+    pass
+
 # gui
 class Window(QWidget):
 
@@ -163,7 +169,7 @@ class Window(QWidget):
             auth_result = auth_db.exec_()
 
             if auth_result:
-                self.db_name, self.db_pass = auth_db.get_output()
+                self.db_name, self.db_user, self.db_pass = auth_db.get_output()
 
                 self.update_resolveview()
                 self.update_timer = QtCore.QTimer()
@@ -192,9 +198,9 @@ class Window(QWidget):
             return dat
 
         try:
-            with psycopg2.connect(user=self.db_name,
+            with psycopg2.connect(user=self.db_user,
                                   password=self.db_pass,
-                                  host="9.0.0.1",
+                                  host="9.0.0.1", # TODO: Make dynamic not string
                                   port="5432",
                                   connect_timeout=3,
                                   database=self.db_name) as connection:
@@ -231,7 +237,7 @@ class Window(QWidget):
                     dat.loc[idx, 'Last Seen'] = dt
 
         except psycopg2.OperationalError as e:
-            self.resolve_status.setText("Resolve database timed out")
+            self.resolve_status.setText(f"Error connecting to database: {e}")
             self.resolvedb_connect = False
 
         return dat
@@ -251,7 +257,7 @@ class Window(QWidget):
         try:
             with psycopg2.connect(user=self.db_name,
                                   password=self.db_pass,
-                                  host="9.0.0.1",
+                                  host="9.0.0.1", # TODO: Make dynamic not string
                                   port="5432",
                                   connect_timeout=3,
                                   database=self.db_name) as connection:
@@ -444,11 +450,13 @@ class Window(QWidget):
             if self.resolvedb_connect == False:
                 self.resolvedb_connect = True
 
+                self.resolve_status.setText(f"")
+
                 auth_db = DatabaseAuth(self)
                 auth_result = auth_db.exec_()
 
                 if auth_result:
-                    self.db_name, self.db_pass = auth_db.get_output()
+                    self.db_name, self.db_user, self.db_pass = auth_db.get_output()
 
                     # Update timer
                     self.update_resolveview()
@@ -529,6 +537,7 @@ class Window(QWidget):
                 self.error("Invalid Assignment IP", f"IP must be on subnet {self.subnet}")
                 return
 
+            # TODO: Make dynamic "first" IP not string
             if ("9.0.0.1"==auth_new['ASSIGN_IP']):
                 self.error("Invalid Assignment IP", f"IP is reserved for admin")
                 return
@@ -682,6 +691,7 @@ class ClientAuthTCP(QDialog):
                 client.successful("Authenticated",
                         "Next: save your WireGuard Client configuration file")
 
+                # TODO: Add IP_SUBNET
                 PKEYS, IP_ASSIGNED = auth_reply.split(',')
 
                 # Client config
@@ -691,10 +701,15 @@ class ClientAuthTCP(QDialog):
                         f"""DNS = 1.1.1.1, 8.8.8.8\n\n"""
                         f"""[Peer]\n"""
                         f"""PublicKey = {PKEYS}\n"""
-                        f"""AllowedIPs = 0.0.0.0/0\n"""
+                        # TODO: Get subnet from server, set here
+                        f"""AllowedIPs = {IP_SUBNET}\n"""
                         f"""Endpoint = {S_IP}:{client.wg_port}\n""")
 
                 saveto = FileDialog(forOpen=False, fmt='conf')
+
+                # TODO: Handle Cancel
+                # TODO: Enable user to copy to clipboard instead
+
                 with open(saveto, 'w') as save_conf:
                     save_conf.write(conf)
 
@@ -885,10 +900,14 @@ class DatabaseAuth(QDialog):
         self.DB_NAME = QtWidgets.QLineEdit()
         self.DB_NAME.setPlaceholderText("Database Name")
 
+        self.DB_USER = QtWidgets.QLineEdit()
+        self.DB_USER.setPlaceholderText("Database Username")
+
         self.DB_PASS = QtWidgets.QLineEdit()
         self.DB_PASS.setPlaceholderText("Database Password")
 
         layout.addWidget(self.DB_NAME)
+        layout.addWidget(self.DB_USER)
         layout.addWidget(self.DB_PASS)
 
         # OK and Cancel buttons
@@ -902,7 +921,7 @@ class DatabaseAuth(QDialog):
         layout.addWidget(buttons)
 
     def get_output(self):
-        return self.DB_NAME.text(),  self.DB_PASS.text(),
+        return self.DB_NAME.text(),  self.DB_USER.text(), self.DB_PASS.text()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
