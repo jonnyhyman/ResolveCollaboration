@@ -1,35 +1,5 @@
 # package imports
-# from PyQt5.QtCore import Qt
-# from PyQt5 import QtWidgets, QtCore, QtGui
-# from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QPushButton,
-#                              QLabel, QSizePolicy, QSlider, QSpacerItem,
-#                              QVBoxLayout, QWidget, QDialog, QMessageBox)
-# from PyQt5.QtWidgets import QFileDialog, QDialog
-# from PyQt5.QtWidgets import QApplication, QTableView
-# from PyQt5.QtCore import QAbstractTableModel, Qt
-
-from PyQt5 import QtWidgets, QtCore, QtGui
-Qt = QtCore.Qt
-
-
-QApplication = QtWidgets.QApplication
-QHBoxLayout = QtWidgets.QHBoxLayout
-QPushButton = QtWidgets.QPushButton
-QLabel = QtWidgets.QLabel
-QSizePolicy = QtWidgets.QSizePolicy
-QSlider = QtWidgets.QSlider
-QSpacerItem = QtWidgets.QSpacerItem
-QVBoxLayout = QtWidgets.QVBoxLayout
-QWidget = QtWidgets.QWidget
-QDialog = QtWidgets.QDialog
-QMessageBox = QtWidgets.QMessageBox
-
-QFileDialog = QtWidgets.QFileDialog
-QDialog = QtWidgets.QDialog
-QApplication = QtWidgets.QApplication
-QTableView = QtWidgets.QTableView
-
-from PyQt5.QtCore import QAbstractTableModel
+from ui.common import *
 
 # from cryptography.hazmat.backends import default_backend
 import cryptography.hazmat.backends
@@ -120,39 +90,35 @@ def UpdateHBA():
     pass
 
 # gui
-class Window(QWidget):
+class Server(UI_Common):
 
     subnet = '9.0.0.0/24'
     auth_port = 4444 # TODO: Test on 51820 instead
     wg_port = 51820
 
     def __init__(self, app, parent=None):
-        super().__init__(parent=parent)
+        super().__init__(app, parent=parent)
 
-        self.app = app
-        self.setWindowTitle("Resolve Mission Control")
+        self.setWindowTitle("Resolve Mission Control Server")
 
-        self.lay = QVBoxLayout(self)
+        # Define buttons
+        self.b_dbadd = QPushButton("+")
+        self.b_dbcon = QPushButton("⇄")
+        self.b_dbdel = QPushButton("-")
+        self.b_setup = QPushButton("Setup")
+        self.b_auth = QPushButton("Start Authentication")
+        self.b_tunn = QPushButton("Activate Tunnel")
 
-        self.context_lay = QHBoxLayout()
-        self.lay.addLayout(self.context_lay)
+        for b in [self.b_dbadd, self.b_dbcon, self.b_dbdel]:
+            self.p_LU.lay.addWidget(b)
 
-        self.context_switch = QPushButton("Client")
-        self.context_switch.setCheckable(True)
-        self.context_switch.clicked.connect(self.toggle_context)
+        for b in [self.b_setup, self.b_auth, self.b_tunn]:
+            self.p_RU.lay.addWidget(b)
 
-        self.context_action = QPushButton("Make New Connection")
-        self.context_action.clicked.connect(self.authenticate)
+        # TODO: Implement
+        self.b_tunn.setEnabled(False)
 
-        self.context_reconn = QPushButton("Reconnect")
-        self.context_reconn.clicked.connect(self.reconnect)
-
-        # layouts
-        self.context_lay.addWidget( self.context_switch )
-        self.context_lay.addWidget( self.context_action )
-        self.context_lay.addWidget( self.context_reconn )
-
-        self.init_resolveview()
+        # self.init_resolveview()
 
     def toggle_context(self, state):
 
@@ -925,6 +891,6 @@ class DatabaseAuth(QDialog):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    w = Window(app)
+    w = Server(app)
     w.show()
     sys.exit(app.exec_())

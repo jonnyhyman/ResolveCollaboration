@@ -1,50 +1,16 @@
 # package imports
-# from PyQt5.QtCore import Qt
-# from PyQt5 import QtWidgets, QtCore, QtGui
-# from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QPushButton,
-#                              QLabel, QSizePolicy, QSlider, QSpacerItem,
-#                              QVBoxLayout, QWidget, QDialog, QMessageBox)
-# from PyQt5.QtWidgets import QFileDialog, QDialog
-# from PyQt5.QtWidgets import QApplication, QTableView
-# from PyQt5.QtCore import QAbstractTableModel, Qt
+from ui.common import *
 
-from PyQt5 import QtWidgets, QtCore, QtGui
-Qt = QtCore.Qt
-
-
-QApplication = QtWidgets.QApplication
-QHBoxLayout = QtWidgets.QHBoxLayout
-QPushButton = QtWidgets.QPushButton
-QLabel = QtWidgets.QLabel
-QSizePolicy = QtWidgets.QSizePolicy
-QSlider = QtWidgets.QSlider
-QSpacerItem = QtWidgets.QSpacerItem
-QVBoxLayout = QtWidgets.QVBoxLayout
-QWidget = QtWidgets.QWidget
-QDialog = QtWidgets.QDialog
-QMessageBox = QtWidgets.QMessageBox
-
-QFileDialog = QtWidgets.QFileDialog
-QDialog = QtWidgets.QDialog
-QApplication = QtWidgets.QApplication
-QTableView = QtWidgets.QTableView
-
-from PyQt5.QtCore import QAbstractTableModel
-
-# from cryptography.hazmat.backends import default_backend
 import cryptography.hazmat.backends
 default_backend = cryptography.hazmat.backends.default_backend
 
-# from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import cryptography.hazmat.primitives.kdf.pbkdf2
 PBKDF2HMAC = cryptography.hazmat.primitives.kdf.pbkdf2.PBKDF2HMAC
 
-#from cryptography.fernet import Fernet, InvalidToken
 import cryptography.fernet
 Fernet = cryptography.fernet.Fernet
 InvalidToken = cryptography.fernet.InvalidToken
 
-# from cryptography.hazmat.primitives import hashes
 import cryptography.hazmat.primitives
 hashes = cryptography.hazmat.primitives.hashes
 
@@ -78,81 +44,91 @@ def passkey(password):
     # if anything, this is what gets saved in a database
     return base64.urlsafe_b64encode(kdf.derive(password))
 
-def FileDialog(directory='', forOpen=True, fmt='', isFolder=False):
-    options = QFileDialog.Options()
-    options |= QFileDialog.DontUseNativeDialog
-    options |= QFileDialog.DontUseCustomDirectoryIcons
-    dialog = QFileDialog()
-    dialog.setOptions(options)
-
-    dialog.setFilter(dialog.filter() | QtCore.QDir.Hidden)
-
-    # ARE WE TALKING ABOUT FILES OR FOLDERS
-    if isFolder:
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-    else:
-        dialog.setFileMode(QFileDialog.AnyFile)
-    # OPENING OR SAVING
-    dialog.setAcceptMode(QFileDialog.AcceptOpen) if forOpen else dialog.setAcceptMode(QFileDialog.AcceptSave)
-
-    # SET FORMAT, IF SPECIFIED
-    if fmt != '' and isFolder is False:
-        dialog.setDefaultSuffix(fmt)
-        dialog.setNameFilters([f'{fmt} (*.{fmt})'])
-
-    # SET THE STARTING DIRECTORY
-    if directory != '':
-        dialog.setDirectory(str(directory))
-    else:
-        dialog.setDirectory(str(Path('').absolute()))
-
-
-    if dialog.exec_() == QDialog.Accepted:
-        path = dialog.selectedFiles()[0]  # returns a list
-        return path
-    else:
-        return ''
-
 def UpdateHBA():
     # Use "SHOW hba_file" to get location of hba file
     # Modify
-    # Restart server: `etc/init.d/postgresql restart` or `systemctl restart postgresql-xx.service` or something else
+    # Reload config
     pass
 
 # gui
-class Window(QWidget):
+class Client(UI_Common):
 
     subnet = '9.0.0.0/24'
     auth_port = 4444 # TODO: Test on 51820 instead
     wg_port = 51820
 
     def __init__(self, app, parent=None):
-        super().__init__(parent=parent)
+        super().__init__(app, parent=parent)
 
-        self.app = app
-        self.setWindowTitle("Resolve Mission Control")
+        self.setWindowTitle("Resolve Mission Control Client")
 
-        self.lay = QVBoxLayout(self)
+        # Define buttons
+        self.b_dbcon = QPushButton("⇄")
+        self.p_LU.lay.addWidget(self.b_dbcon)
+        self.b_dbcon.setObjectName("b_dbcon")
+        self.b_dbcon.setStyleSheet("""QPushButton#b_dbcon {
+                                    color: #848484;
+                                    background: transparent;
+                                    }
+                                    QPushButton#b_dbcon::hover{
+                                    	color: white;
+                                    }
+                                    QPushButton#b_dbcon::pressed{
+                                    	color: #848484;
+                                    }""")
 
-        self.context_lay = QHBoxLayout()
-        self.lay.addLayout(self.context_lay)
 
-        self.context_switch = QPushButton("Client")
-        self.context_switch.setCheckable(True)
-        self.context_switch.clicked.connect(self.toggle_context)
+        self.b_setup = QPushButton("Setup")
+        self.b_auth = QPushButton("Authenticate")
+        self.b_tunn = QPushButton("Activate Tunnel")
+        self.b_sync = QPushButton("Sync Status")
 
-        self.context_action = QPushButton("Make New Connection")
-        self.context_action.clicked.connect(self.authenticate)
+        for b in [self.b_setup, self.b_auth, self.b_tunn, self.b_sync]:
+            self.p_RU.lay.addWidget(b)
 
-        self.context_reconn = QPushButton("Reconnect")
-        self.context_reconn.clicked.connect(self.reconnect)
+        # TODO: Implement
+        self.b_tunn.setEnabled(False)
+        self.b_sync.setEnabled(False)
 
-        # layouts
-        self.context_lay.addWidget( self.context_switch )
-        self.context_lay.addWidget( self.context_action )
-        self.context_lay.addWidget( self.context_reconn )
+        # TESTING
+        self.users.add_user('Jonny')
+        self.users.add_user('Mel')
+        self.users.add_user('David')
+        self.users.add_user('Hendrick')
+        self.users.add_user('Mom')
+        self.users.add_user('Dad')
 
-        self.init_resolveview()
+        # Prep views of resolve database
+        self.resolvedb_connect = False
+
+        # People
+        # self.label = QLabel("### People")
+        # self.label.setTextFormat(Qt.MarkdownText)
+        # self.p_RB.lay.addWidget(self.label)
+        #
+        people = self.resolvedb_users()
+        # model = pandasModel(people)
+        # self.people_view = QTableView()
+        # self.people_view.setModel(model)
+        # self.p_RB.lay.addWidget(self.people_view)
+
+        # Projects
+        self.label = QLabel("### Projects")
+        self.label.setTextFormat(Qt.MarkdownText)
+        self.p_RB.lay.addWidget(self.label, alignment=Qt.AlignHCenter)
+
+        model = pandasModel(self.resolvedb_projects(people))
+        self.projects_view = QTableView()
+        self.projects_view.setModel(model)
+        self.p_RB.lay.addWidget(self.projects_view)
+
+        # self.people_view.horizontalHeader().setSectionResizeMode(
+        #                                         QtWidgets.QHeaderView.Stretch)
+        self.projects_view.horizontalHeader().setSectionResizeMode(
+                                                QtWidgets.QHeaderView.Stretch)
+
+        self.resolve_status = QLabel("Not connected to Resolve")
+        self.p_RB.lay.addWidget(self.resolve_status)
 
     def toggle_context(self, state):
 
@@ -247,7 +223,8 @@ class Window(QWidget):
         cols = {"ProjectName":"Name",
                 "IsLiveCollaborationEnabled":"Collaboration Enabled",
                 "SysIds":"Live Users",
-                "SM_Project_id": "ID"}
+                # "SM_Project_id": "ID",
+                }
 
         dat = pd.DataFrame(columns=cols.values())
 
@@ -286,39 +263,6 @@ class Window(QWidget):
             self.resolvedb_connect = False
 
         return dat
-
-    def init_resolveview(self):
-
-        self.resolvedb_connect = False
-
-        # People
-        self.label = QLabel("### People")
-        self.label.setTextFormat(Qt.MarkdownText)
-        self.lay.addWidget(self.label)
-
-        people = self.resolvedb_users()
-        model = pandasModel(people)
-        self.people_view = QTableView()
-        self.people_view.setModel(model)
-        self.lay.addWidget(self.people_view)
-
-        # Projects
-        self.label = QLabel("### Projects")
-        self.label.setTextFormat(Qt.MarkdownText)
-        self.lay.addWidget(self.label)
-
-        model = pandasModel(self.resolvedb_projects(people))
-        self.projects_view = QTableView()
-        self.projects_view.setModel(model)
-        self.lay.addWidget(self.projects_view)
-
-        self.people_view.horizontalHeader().setSectionResizeMode(
-                                                QtWidgets.QHeaderView.Stretch)
-        self.projects_view.horizontalHeader().setSectionResizeMode(
-                                                QtWidgets.QHeaderView.Stretch)
-
-        self.resolve_status = QLabel("Not connected to Resolve")
-        self.lay.addWidget(self.resolve_status)
 
     def update_resolveview(self):
         people = self.resolvedb_users()
@@ -925,6 +869,6 @@ class DatabaseAuth(QDialog):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    w = Window(app)
+    w = Client(app)
     w.show()
     sys.exit(app.exec_())
