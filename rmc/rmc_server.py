@@ -529,6 +529,49 @@ class Server(UI_Common):
             self.successful(f"Created {auth_new['UNAME']}",
                             f"IP Assigned: {auth_new['ASSIGN_IP']}")
 
+
+    def update_hba(self):
+
+        with psycopg2.connect(user=db_user,
+                      password=db_pass,
+                      host="9.0.0.1",
+                      port="5432",
+                      connect_timeout=3,
+                      database=db_name) as connection:
+
+            # Use "SHOW hba_file" to get location of hba file
+            hba_file = pd.read_sql_query(f'''SHOW hba_file''', connection).iloc[0,0]
+
+            # Default hba_conf
+            default_hba = (
+                f"""# pg_hba.conf was last modified by """
+                f"""Resolve Mission Control at {datetime.datetime.utcnow()}. """
+                f"""Manual edit at your own risk!\n"""
+                f"""# TYPE    DATABASE    USER    ADDRESS    METHOD\n"""
+                f"""host    all    all    127.0.0.1/32    md5\n"""
+                f"""host    all    all    ::1/128    md5\n"""
+            )
+
+            hba_list = hba.split('\n')
+
+            # TODO: For loop through server's user database
+            db_name = db_name
+            db_user = db_user
+            user_ip = '9.0.0.6'
+            hba_list[-1] = f"host    {db_name}    {db_user}    {user_ip}/32    md5\n"
+            new_hba = '\n'.join(hba_list)
+
+            with open("pg_hba_rmcc_backup.conf",'w') as bkup:
+                bkup.write(hba)
+
+            # Modify new
+            with open(hba_file,'w') as file:
+                file.write(new_hba)
+
+            # Reload config
+            # True if suceeded, False if failed
+            return pd.read_sql_query(f"select pg_reload_conf()", connection).iloc[0,0]
+
 # ----------------------- PANDAS DATAFRAME TO PYQT
 
 class pandasModel(QAbstractTableModel):

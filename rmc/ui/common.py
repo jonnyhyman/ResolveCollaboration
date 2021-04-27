@@ -23,45 +23,10 @@ QTableView = QtWidgets.QTableView
 QAbstractTableModel = QtCore.QAbstractTableModel
 
 QPixmap = QtGui.QPixmap
-
-def FileDialog(directory='', forOpen=True, fmt='', isFolder=False):
-    """ Standard file selection dialog """
-    options = QFileDialog.Options()
-    options |= QFileDialog.DontUseNativeDialog
-    options |= QFileDialog.DontUseCustomDirectoryIcons
-    dialog = QFileDialog()
-    dialog.setOptions(options)
-
-    dialog.setFilter(dialog.filter() | QtCore.QDir.Hidden)
-
-    # ARE WE TALKING ABOUT FILES OR FOLDERS
-    if isFolder:
-        dialog.setFileMode(QFileDialog.DirectoryOnly)
-    else:
-        dialog.setFileMode(QFileDialog.AnyFile)
-    # OPENING OR SAVING
-    dialog.setAcceptMode(QFileDialog.AcceptOpen) if forOpen else dialog.setAcceptMode(QFileDialog.AcceptSave)
-
-    # SET FORMAT, IF SPECIFIED
-    if fmt != '' and isFolder is False:
-        dialog.setDefaultSuffix(fmt)
-        dialog.setNameFilters([f'{fmt} (*.{fmt})'])
-
-    # SET THE STARTING DIRECTORY
-    if directory != '':
-        dialog.setDirectory(str(directory))
-    else:
-        dialog.setDirectory(str(Path('').absolute()))
-
-
-    if dialog.exec_() == QDialog.Accepted:
-        path = dialog.selectedFiles()[0]  # returns a list
-        return path
-    else:
-        return ''
+QIcon = QtGui.QIcon
 
 class UI_Panel(QFrame):
-    def __init__(self, layout, parent):
+    def __init__(self, layout, parent, borders = "all", bg="#212126"):
         super().__init__()
 
         self.setFrameShape(QtWidgets.QFrame.Panel)
@@ -78,10 +43,26 @@ class UI_Panel(QFrame):
         parent.addWidget(self)
 
         self.setObjectName("UI_Panel")
-        self.setStyleSheet("""QFrame#UI_Panel {
-                                    background: #212126;
-                                    border: .5px solid #0A0A0A;
-                                }""")
+
+        stylesheet  = """QFrame#UI_Panel {"""
+        stylesheet += f"""background: {bg};"""
+
+        if borders == 'all':
+            borders = 'left-right-bottom-top'
+
+        # All start invisible
+        for wall in ("left-right-bottom-top").split('-'):
+            stylesheet += (f"""border-{wall}: 0px solid transparent;""")
+
+        # Override
+        if borders != '':
+
+            for wall in borders.split('-'):
+                stylesheet += (f"""border-{wall}: 1px solid #0A0A0A;""")
+
+        stylesheet += "}"
+
+        self.setStyleSheet(stylesheet)
 
 class UI_Common(QWidget):
     def __init__(self, app, parent=None):
@@ -100,10 +81,10 @@ class UI_Common(QWidget):
 
         # LU : Left upper, LB : Left bottom (etc...)
 
-        self.p_LU = UI_Panel('h', parent=self.layL)
-        self.p_LB = UI_Panel('v', parent=self.layL)
-        self.p_RU = UI_Panel('h', parent=self.layR)
-        self.p_RB = UI_Panel('v', parent=self.layR)
+        self.p_LU = UI_Panel('h', parent=self.layL, borders='right-bottom')
+        self.p_LB = UI_Panel('v', parent=self.layL, borders='right', bg="#28282E")
+        self.p_RU = UI_Panel('h', parent=self.layR, borders='bottom')
+        self.p_RB = UI_Panel('v', parent=self.layR, borders='')
 
         # Size policies
         self.p_LU.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
@@ -111,16 +92,11 @@ class UI_Common(QWidget):
         self.users = UI_Users(parent=self.p_RB.lay)
         self.dbses = UI_Databases(parent=self.p_LB.lay)
 
-        # Styles
+        # Styless
         self.setStyleSheet("""QLabel {
                                     color: white;
                                 }""")
 
-        self.setObjectName("UI_Panel")
-        self.p_RB.setStyleSheet("""QFrame#UI_Panel {
-                                    background: #28282E;
-                                    border: 1px solid #0A0A0A;
-                                }""")
 
 class UI_User(QFrame):
     # Controller for a particular user
@@ -209,3 +185,66 @@ class UI_Databases(QFrame):
 
     def add_database(self, name):
         self.lay.addWidget(UI_Database(name, self))
+
+# ----------------------- File Dialogs
+
+def FileDialog(directory='', forOpen=True, fmt='', isFolder=False):
+    """ Standard file selection dialog """
+    options = QFileDialog.Options()
+    options |= QFileDialog.DontUseNativeDialog
+    options |= QFileDialog.DontUseCustomDirectoryIcons
+    dialog = QFileDialog()
+    dialog.setOptions(options)
+
+    dialog.setFilter(dialog.filter() | QtCore.QDir.Hidden)
+
+    # ARE WE TALKING ABOUT FILES OR FOLDERS
+    if isFolder:
+        dialog.setFileMode(QFileDialog.DirectoryOnly)
+    else:
+        dialog.setFileMode(QFileDialog.AnyFile)
+    # OPENING OR SAVING
+    dialog.setAcceptMode(QFileDialog.AcceptOpen) if forOpen else dialog.setAcceptMode(QFileDialog.AcceptSave)
+
+    # SET FORMAT, IF SPECIFIED
+    if fmt != '' and isFolder is False:
+        dialog.setDefaultSuffix(fmt)
+        dialog.setNameFilters([f'{fmt} (*.{fmt})'])
+
+    # SET THE STARTING DIRECTORY
+    if directory != '':
+        dialog.setDirectory(str(directory))
+    else:
+        dialog.setDirectory(str(Path('').absolute()))
+
+
+    if dialog.exec_() == QDialog.Accepted:
+        path = dialog.selectedFiles()[0]  # returns a list
+        return path
+    else:
+        return ''
+
+# ----------------------- PANDAS DATAFRAME TO PYQT
+
+class pandasModel(QAbstractTableModel):
+
+    def __init__(self, data):
+        QAbstractTableModel.__init__(self)
+        self._data = data
+
+    def rowCount(self, parent=None):
+        return self._data.shape[0]
+
+    def columnCount(self, parnet=None):
+        return self._data.shape[1]
+
+    def data(self, index, role=Qt.DisplayRole):
+        if index.isValid():
+            if role == Qt.DisplayRole:
+                return str(self._data.iloc[index.row(), index.column()])
+        return None
+
+    def headerData(self, col, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return self._data.columns[col]
+        return None
