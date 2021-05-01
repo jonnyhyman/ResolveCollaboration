@@ -1,55 +1,37 @@
 # package imports
 from ui.common import *
 
-import cryptography.hazmat.backends
-default_backend = cryptography.hazmat.backends.default_backend
-
-import cryptography.hazmat.primitives.kdf.pbkdf2
-PBKDF2HMAC = cryptography.hazmat.primitives.kdf.pbkdf2.PBKDF2HMAC
-
-import cryptography.fernet
-Fernet = cryptography.fernet.Fernet
-InvalidToken = cryptography.fernet.InvalidToken
-
-import cryptography.hazmat.primitives
-hashes = cryptography.hazmat.primitives.hashes
+from auth.client import tcp_client
+from auth.crypt import passkey, Fernet
+from auth.keys import PrivateKey
 
 import pandas as pd
 import psycopg2
 
-from wgnlpy import PrivateKey
-
 # built-in imports
 from pathlib import Path
-import ipaddress
+from ipaddress import ip_address, ip_network
 import sys
 
-import asyncio
-import base64
 import datetime
+from multiprocessing import Process, Queue
 
-# local imports
-# from styles import *
 
-# helper functions
-def passkey(password):
-    password = password.encode()  # Convert to type bytes
-    kdf = PBKDF2HMAC(
-        algorithm=hashes.SHA256(),
-        length=32,
-        salt=password,
-        iterations=100000,
-        backend=default_backend()
-    )
-    # if anything, this is what gets saved in a database
-    return base64.urlsafe_b64encode(kdf.derive(password))
+"""
+Client app:
+    - Client: main app
+    - Client setup: setup guide window
+    - Client auth: authorization form to kick off server authentication
+"""
 
 # gui
 class Client(UI_Common):
+    """ Client window """
 
-    subnet = None #'9.0.0.0/24'
-    auth_port = None #4444 # TODO: Test on 51820 instead
-    wg_port = None # 51820
+    context = 'client'
+    subnet = '9.0.0.0/24'
+    auth_port = 51820 # TODO: Test on 51820 instead
+    wg_port = 51820
 
     def __init__(self, app, parent=None):
         super().__init__(app, parent=parent)
@@ -79,48 +61,17 @@ class Client(UI_Common):
         for b in [self.b_setup, self.b_tunn, self.b_sync]:
             self.p_RU.lay.addWidget(b)
 
-        # TODO: Implement
+        """TODO:
+                - b_tunn should activate the Wireguard tunnel automatically
+                - b_sync should open a window which shows the media sync status
+        """
         self.b_tunn.setEnabled(False)
         self.b_sync.setEnabled(False)
-
-        # TESTING
-        self.users.add_user('Jonny')
-        self.users.add_user('Mel')
-        self.users.add_user('David')
-        self.users.add_user('Hendrick')
-        self.users.add_user('Mom')
-        self.users.add_user('Dad')
 
         # Resolve database views
         self.resolvedb_connect = False
 
-        # People
-        # self.label = QLabel("### People")
-        # self.label.setTextFormat(Qt.MarkdownText)
-        # self.p_RB.lay.addWidget(self.label)
-        #
-        # people = self.resolvedb_users()
-        # model = pandasModel(people)
-        # self.people_view = QTableView()
-        # self.people_view.setModel(model)
-        # self.p_RB.lay.addWidget(self.people_view)
-
-        # Projects
-        self.label = QLabel("### Projects")
-        self.label.setTextFormat(Qt.MarkdownText)
-        self.p_RB.lay.addWidget(self.label, alignment=Qt.AlignHCenter)
-
-        # model = pandasModel(self.resolvedb_projects(people))
-        # self.projects_view = QTableView()
-        # self.projects_view.setModel(model)
-        # self.p_RB.lay.addWidget(self.projects_view)
-
-        # self.people_view.horizontalHeader().setSectionResizeMode(
-        #                                         QtWidgets.QHeaderView.Stretch)
-        # self.projects_view.horizontalHeader().setSectionResizeMode(
-        #                                         QtWidgets.QHeaderView.Stretch)
-
-        self.message = QLabel("Not connected to Resolve")
+        self.message = QLabel("")
         self.message.setTextFormat(Qt.MarkdownText)
         self.p_RB.lay.addWidget(self.message, alignment=Qt.AlignBottom)
 
@@ -128,59 +79,41 @@ class Client(UI_Common):
         self.setup_window = ClientSetup(self)
         self.b_setup.clicked.connect(self.setup_window.show)
 
-    def error(self, error_message, infotext=""):
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Critical)
-        msg.setText(error_message)
-        msg.setInformativeText(infotext)
-        msg.setWindowTitle(error_message)
-        msg.exec_()
-
-    def successful(self, error_message, infotext=""):
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Information)
-        msg.setText(error_message)
-        msg.setInformativeText(infotext)
-        msg.setWindowTitle(error_message)
-        msg.exec_()
-
-    def reconnect(self):
-        if self.resolvedb_connect == False:
-            self.resolvedb_connect = True
-
-            self.resolve_status.setText(f"")
-
-            auth_db = DatabaseAuth(self)
-            auth_result = auth_db.exec_()
-
-            if auth_result:
-                self.db_name, self.db_user, self.db_pass = auth_db.get_output()
-
-                # Update timer
-                self.update_resolveview()
-                self.update_timer = QtCore.QTimer()
-                self.update_timer.timeout.connect(self.update_resolveview)
-                self.update_timer.start(30*1000)
+        self.b_dbcon.clicked.connect(self.database_connect)
 
     def auth_client(self):
+        """ Authorize client over TCP with the RMC Server """
         auth_request = ClientAuth(self)
         auth_request.setWindowTitle("Authenticate")
+
         auth_result = auth_request.exec_()
         auth_request = auth_request.get_output()
 
         if auth_result:
 
-            if len(auth_request['S_IP'].split('.')) != 4:
-                self.error("Invalid Server IP", "Check input and try again")
+            try:
+                ip_address(auth_request['S_IP'])
+            except ValueError as e:
+                UI_Error(self,"Invalid Server IP", str(e))
+                self.auth_client()
                 return
 
-            elif len(auth_request['S_PWD']) == 0:
-                self.error("Invalid Server Password",
+            try:
+                int(auth_request['S_PORT'])
+            except ValueError as e:
+                UI_Error(self,"Invalid Server Port", str(e))
+                self.auth_client()
+                return
+
+            if len(auth_request['S_PWD']) == 0:
+                UI_Error(self,"Invalid Server Password",
                             "Input string length zero")
+                self.auth_client()
                 return
 
             elif len(auth_request['UNAME']) == 0:
-                self.error("Invalid Username", "Input string length zero")
+                UI_Error(self,"Invalid Username", "Input string length zero")
+                self.auth_client()
                 return
 
             self.auth_request = auth_request
@@ -188,9 +121,49 @@ class Client(UI_Common):
             # By this point, the input is a valid authentication request
             auth_tcp = ClientAuthTCP(self)
             auth_tcp.exec_()
-            # Output is the config file
+            if auth_tcp.tcp_authentic:
+
+                # Create Wireguard tunnel config file
+                PKEYS, IP_ASSIGNED, WG_PORT = auth_tcp.tcp_authentic
+
+                print(PKEYS, IP_ASSIGNED, WG_PORT)
+
+                client_config = (f"""
+[Interface]
+# This MUST match the "AllowedIPs" IP you assigned to this peer in
+# the server's config.
+Address = {IP_ASSIGNED}/32
+# Substitute with *this peer's* private key.
+PrivateKey = {auth_tcp.pk}
+# This prevents IPv4 & IPv6 DNS leaks when browsing the web on the
+# VPN. I chose Cloudflare's public DNS servers, but feel free to use
+# whatever provider you prefer.
+DNS = 1.1.1.1, 8.8.8.8
+
+[Peer]
+# Substitute with your *server's* public key
+PublicKey = {PKEYS}
+# Your Wireguard server's public IP. If you chose a different port
+# earlier when setting up port forwarding on your router, update the
+# port here to match.
+Endpoint = {auth_request['S_IP']}:{WG_PORT}
+# Informs Wireguard to forward ALL traffic through the VPN.
+AllowedIPs = 0.0.0.0/0, ::/0
+# If you're be behind a NAT, this will keep the connection alive.
+PersistentKeepalive = 25
+                """)
+
+                # Save config to conf file
+                saveto = FileDialog(forOpen=False, fmt='conf',
+                                    title="Save Wireguard Configuration File")
+
+                if saveto:
+                    with open(saveto, 'w') as save_conf:
+                        save_conf.write(client_config)
 
 class ClientSetup(QWidget):
+    """ Window to help client with setup """
+
     def __init__(self, client, parent=None):
         super().__init__(parent=parent)
         self.client = client
@@ -211,15 +184,16 @@ class ClientSetup(QWidget):
 
         b = self.add_step("Authenticate", 'icons/database_secured.png', 0,0)
         b.clicked.connect(self.client.auth_client)
+        b.setEnabled(True)
 
         self.add_arrow(0,1)
         b = self.add_step("Connect to Tunnel", 'icons/user_secured.png', 0,2)
-        
 
         self.add_arrow(0,3)
         b = self.add_step("Connect to Database", 'icons/database_secured.png', 0,4)
 
     def add_step(self, label_text, icon, i, j):
+        """ Add setup step (button) """
 
         slay = QHBoxLayout()
         icon = QPixmap(icon)
@@ -227,6 +201,7 @@ class ClientSetup(QWidget):
         key = label_text.lower()
 
         self.b_setup[key] = QPushButton(label_text)
+        self.b_setup[key].setEnabled(False)
         self.b_setup[key].setObjectName("setup_button")
         self.b_setup[key].setStyleSheet(
             """QPushButton#setup_button {
@@ -251,23 +226,17 @@ class ClientSetup(QWidget):
         return self.b_setup[key]
 
     def add_arrow(self, i,j):
+        """ Add setup flow arrow """
+
         arrow = QLabel("→")
         arrow.setObjectName("arrow")
-        arrow.setStyleSheet("""QPushButton#b_dbcon {
-                                    color: #848484;
-                                    background: transparent;
-                                    }
-                                    QPushButton#b_dbcon::hover{
-                                    	color: white;
-                                    }
-                                    QPushButton#b_dbcon::pressed{
-                                    	color: #848484;
-                                    }""")
         self.lay.addWidget(arrow, i,j)
 
 # ----------------------- AUTHENTICATION PROMPTS AND FLOWS
 
-class ClientAuth(QDialog):
+class ClientAuth(UI_Dialog):
+    """ Form to get client-side authorization details """
+
     def __init__(self, parent = None):
         super(ClientAuth, self).__init__(parent)
 
@@ -279,11 +248,16 @@ class ClientAuth(QDialog):
         self.S_IP = QtWidgets.QLineEdit()
         self.S_IP.setPlaceholderText("Server IP")
 
+        self.S_PORT = QtWidgets.QLineEdit()
+        self.S_PORT.setPlaceholderText("Server Port")
+
         self.S_PWD = QtWidgets.QLineEdit()
         self.S_PWD.setPlaceholderText("Server Password")
+        self.S_PWD.setEchoMode(QtWidgets.QLineEdit.Password)
 
         layout.addWidget(self.UNAME)
         layout.addWidget(self.S_IP)
+        layout.addWidget(self.S_PORT)
         layout.addWidget(self.S_PWD)
 
         # OK and Cancel buttons
@@ -295,17 +269,36 @@ class ClientAuth(QDialog):
 
         layout.addWidget(buttons)
 
+        if self.parent().config['auth'] != {}:
+            auth = self.parent().config['auth']
+
+            self.UNAME.setText(auth['client_username'])
+            self.S_PWD.setText(auth['server_password'])
+            self.S_IP.setText( auth['server_ip'] )
+            self.S_PORT.setText( auth['server_port'] )
+
     def get_output(self):
 
         self.auth_request = {
             "UNAME" : self.UNAME.text(),
-            "S_IP" : self.S_IP.text(),
+            "S_IP"  : self.S_IP.text(),
+            "S_PORT": self.S_PORT.text(),
             "S_PWD" : self.S_PWD.text(),
         }
 
+        client = self.parent()
+        client.config['auth']['client_username'] = self.auth_request['UNAME']
+        client.config['auth']['server_password'] = self.auth_request['S_PWD']
+        client.config['auth']['server_ip'] = self.auth_request['S_IP']
+        client.config['auth']['server_port'] = self.auth_request['S_PORT']
+        client.config.save()
+
         return (self.auth_request)
 
-class ClientAuthTCP(QDialog):
+
+class ClientAuthTCP(UI_Dialog):
+    """ Front-end of TCP Client"""
+
     def __init__(self, parent = None):
         super(ClientAuthTCP, self).__init__(parent)
 
@@ -314,128 +307,59 @@ class ClientAuthTCP(QDialog):
         self.status = QtWidgets.QLabel()
         layout.addWidget(self.status)
 
-        self.authenticate()
-
-    def authenticate(self):
-
         client = self.parent()
         self.status.setText("Creating request")
 
         # ------------- INPUTS
         S_IP = client.auth_request['S_IP']
+        S_PORT = client.auth_request['S_PORT']
         UNAME = client.auth_request['UNAME']
         SPASS = passkey(client.auth_request['S_PWD'])
 
         # ------------- GENERATE KEYS
         pk = PrivateKey.generate()
         Pk = pk.public_key()
+        self.pk = pk  # save for config use
 
         # ------------- GENERATE PACKET
         MESSG = f"{SPASS.decode()},{Pk}"
 
-        # ------------- COMMUNICATION
-        S_PORT = client.auth_port
-
         # Authentication request
         encrypted = Fernet(passkey(UNAME)).encrypt(MESSG.encode())
 
-        async def tcp_authenticate_request(loop):
+        self.tcp_queue = Queue()
+        self.tcp_proc = Process(target = tcp_client,
+                                args = (self.tcp_queue, S_IP, S_PORT, SPASS, encrypted,))
 
-            self.status.setText(f"Connecting to server {S_IP}:{S_PORT}")
-            print(">>> Connecting to", S_IP, S_PORT)
-            try:
-                reader, writer = await asyncio.open_connection(S_IP, S_PORT,
-                                                               loop=loop)
-            except ConnectionRefusedError:
-                self.status.setText(f"Connection to server {S_IP}:{S_PORT} refused")
-                return
+        self.update_timer = QTimer(self)
+        self.update_timer.timeout.connect(self.update_status)
+        self.update_timer.start(500)
+        self.tcp_proc.start()
 
-            except TimeoutError:
-                self.status.setText(f"Connection to server {S_IP}:{S_PORT} timed out")
-                return
+        self.tcp_authentic = None
 
-            self.status.setText("Sent request")
-            print('>>> Sent encrypted authentication request')
-            writer.write(encrypted)
+    def update_status(self):
+        if not self.tcp_queue.empty():
+            update = self.tcp_queue.get_nowait()
 
-            auth_reply = await reader.read(1024)
+        else:
+            if self.tcp_authentic:
+                self.close()
+            return
 
-            try:
-                auth_reply = Fernet(SPASS).decrypt(auth_reply)
-                auth_reply = auth_reply.decode()
-                print(f">>> Received Authentication Reply: {auth_reply}")
+        if type(update) == str:
+            self.status.setText(update)
 
-                client.successful("Authenticated",
-                        "Next: save your WireGuard Client configuration file")
+        elif type(update) == list:
+            # This marks the end of the request, a list of
+            # [PKEYS, IP_ASSIGNED, WG_PORT]
+            self.tcp_authentic = update
 
-                # TODO: Add IP_SUBNET
-                PKEYS, IP_ASSIGNED = auth_reply.split(',')
-
-                # Client config
-                conf = (f"""[Interface]\n"""
-                        f"""PrivateKey = {pk}\n"""
-                        f"""Address = {IP_ASSIGNED}/32\n"""
-                        f"""DNS = 1.1.1.1, 8.8.8.8\n\n"""
-                        f"""[Peer]\n"""
-                        f"""PublicKey = {PKEYS}\n"""
-                        # TODO: Get subnet from server, set here
-                        f"""AllowedIPs = {IP_SUBNET}\n"""
-                        f"""Endpoint = {S_IP}:{client.wg_port}\n""")
-
-                saveto = FileDialog(forOpen=False, fmt='conf')
-
-                # TODO: Handle Cancel
-                # TODO: Enable user to copy to clipboard instead
-
-                with open(saveto, 'w') as save_conf:
-                    save_conf.write(conf)
-
-                self.status.setText(f"Saved file: {saveto}")
-
-            except InvalidToken as e:
-                print(f"... Received Authentication Error: {auth_reply.decode()}")
-                self.status.setText(f"Authentication Error: {auth_reply.decode()}")
-                pass
-
-            writer.close()
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        loop.run_until_complete(tcp_authenticate_request(loop))
-        loop.close()
-
-class DatabaseAuth(QDialog):
-    def __init__(self, parent = None):
-        super(DatabaseAuth, self).__init__(parent)
-
-        layout = QVBoxLayout(self)
-
-        self.DB_NAME = QtWidgets.QLineEdit()
-        self.DB_NAME.setPlaceholderText("Database Name")
-
-        self.DB_USER = QtWidgets.QLineEdit()
-        self.DB_USER.setPlaceholderText("Database Username")
-
-        self.DB_PASS = QtWidgets.QLineEdit()
-        self.DB_PASS.setPlaceholderText("Database Password")
-
-        layout.addWidget(self.DB_NAME)
-        layout.addWidget(self.DB_USER)
-        layout.addWidget(self.DB_PASS)
-
-        # OK and Cancel buttons
-        buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-            Qt.Horizontal, self)
-
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-
-        layout.addWidget(buttons)
-
-    def get_output(self):
-        return self.DB_NAME.text(),  self.DB_USER.text(), self.DB_PASS.text()
+    def closeEvent(self, event):
+        self.update_timer.stop()
+        self.tcp_proc.terminate()
+        self.tcp_proc.join()
+        self.tcp_queue.close()
 
 if __name__ == '__main__':
 
@@ -444,7 +368,7 @@ if __name__ == '__main__':
     w = Client(app)
     w.show()
 
-    if len(sys.argv[1]) > 1 and sys.argv[1] == 'setup':
+    if len(sys.argv) > 1 and sys.argv[1] == 'setup':
         w.setup_window.show()
 
     sys.exit(app.exec_())
