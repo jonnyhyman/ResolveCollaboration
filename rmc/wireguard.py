@@ -1,4 +1,5 @@
 from pathlib import Path
+from subprocess import Popen, PIPE
 import subprocess
 import os
 
@@ -9,10 +10,8 @@ class WireguardServer_macOS:
     def __init__(self, force_reset=False, config=None,
                         port=51820, subnet = "9.0.0.0/24"):
 
-        self.state = 0
-
         if config is not None:
-            self.subnet = config['wireguard']['subnet']
+            self.subnet = config['auth']['subnet']
             self.port = config['wireguard']['port']
             self.pk = config['wireguard']['pk']
             self.Pk = config['wireguard']['Pk']
@@ -147,11 +146,24 @@ AllowedIPs = {user['ip']}/32
         if do_up:
             self.up()
 
+    @property
+    def state(self):
+        if self.peers():
+            # Check if already running, and update if so
+            return True
+        else:
+            return False
+
     def up(self):
-        up = subprocess.check_output("sudo wg-quick up /usr/local/etc/wireguard/server.conf",
-                                        shell=True, stderr=subprocess.STDOUT)
-        print(str(up,'utf-8'))
-        self.state = 1
+
+        # already up?
+        if self.state:
+            # Check if already running, and update state if so
+            return
+        else:
+            up = subprocess.check_output("sudo wg-quick up /usr/local/etc/wireguard/server.conf",
+                                            shell=True, stderr=subprocess.STDOUT)
+            print(str(up,'utf-8'))
 
     def show(self):
         show = subprocess.check_output("sudo wg show", shell=True, stderr=subprocess.STDOUT)
@@ -163,7 +175,6 @@ AllowedIPs = {user['ip']}/32
 
         down = subprocess.check_output("sudo wg-quick down /usr/local/etc/wireguard/server.conf", shell=True, stderr=subprocess.STDOUT)
         print(str(down,'utf-8'))
-        self.state = 0
 
     def pk_Pk_pair(self):
 
@@ -180,3 +191,35 @@ AllowedIPs = {user['ip']}/32
         Path("publickey").unlink() # (delete)
 
         return pk, Pk
+
+    def peers(self):
+        """ Returns a dict containing all peers in the Server config.
+                like: {Pk: {'ip':'...', 'handshake': True}}
+        """
+
+
+        proc = Popen(['wg','show'], stdout=PIPE, stderr=PIPE)
+        wg, err = proc.communicate()
+        wg = str(wg,'utf-8')
+
+        peers = {}
+
+        if "peer: " in wg:
+            peers_conf = wg.split("peer: ")
+
+            # [1:] because interface/server is 0
+            for peer in peers_conf[1:]:
+
+                Pk = peer.split('\n')[0]
+                handshake = False
+
+                for row in peer.split('\n'):
+                    if 'allowed ips' in row:
+                        ip = row.strip().split(':')[1].strip()
+
+                    if 'handshake' in row:
+                        handshake = True
+
+                peers[Pk] = {"ip": ip, 'handshake':handshake}
+
+        return peers

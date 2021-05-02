@@ -5,7 +5,6 @@ from auth.client import tcp_client
 from auth.crypt import passkey, Fernet
 from auth.keys import PrivateKey
 
-import pandas as pd
 import psycopg2
 
 # built-in imports
@@ -78,7 +77,6 @@ class Client(UI_Common):
         # BUTTON CONNECT
         self.setup_window = ClientSetup(self)
         self.b_setup.clicked.connect(self.setup_window.show)
-
         self.b_dbcon.clicked.connect(self.database_connect)
 
     def auth_client(self):
@@ -125,8 +123,6 @@ class Client(UI_Common):
 
                 # Create Wireguard tunnel config file
                 PKEYS, IP_ASSIGNED, WG_PORT = auth_tcp.tcp_authentic
-
-                print(PKEYS, IP_ASSIGNED, WG_PORT)
 
                 client_config = (f"""
 [Interface]
@@ -188,9 +184,12 @@ class ClientSetup(QWidget):
 
         self.add_arrow(0,1)
         b = self.add_step("Connect to Tunnel", 'icons/user_secured.png', 0,2)
+        b.clicked.connect(lambda: ConnectToTunnel(self))
 
         self.add_arrow(0,3)
-        b = self.add_step("Connect to Database", 'icons/database_secured.png', 0,4)
+        b = self.add_step("Export Database Access Key", 'icons/database_secured.png', 0,4)
+        b.clicked.connect(self.client.dbses.export_selected)
+        b.setEnabled(True)
 
     def add_step(self, label_text, icon, i, j):
         """ Add setup step (button) """
@@ -231,6 +230,20 @@ class ClientSetup(QWidget):
         arrow = QLabel("→")
         arrow.setObjectName("arrow")
         self.lay.addWidget(arrow, i,j)
+
+def ConnectToTunnel(client):
+
+    text = f"""Use the Wireguard app to connect.
+- Click "Import tunnel from file"
+- Open the .conf file you saved
+- Activate"""
+
+    msg = QMessageBox(client)
+    msg.setTextFormat(Qt.MarkdownText)
+    msg.setText(text)
+    msg.setInformativeText("")
+    msg.setWindowTitle("Connect to Tunnel")
+    msg.exec_()
 
 # ----------------------- AUTHENTICATION PROMPTS AND FLOWS
 

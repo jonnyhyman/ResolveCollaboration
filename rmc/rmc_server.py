@@ -1,12 +1,15 @@
-# package imports
+# rmc imports
 from ui.common import *
 
 from auth.server import tcp_server
 from auth.crypt import passkey, Fernet
 
+#
+from util.default_hba import default_hba
+
 from wireguard import WireguardServer_macOS
 
-import pandas as pd
+# 3rd party package imports
 import psycopg2
 
 # built-in imports
@@ -88,25 +91,28 @@ class Server(UI_Common):
         # Sever configured?
         if self.config['auth'] != {}:
             self.init_userview()
-            self.auth_key = self.config['auth']['authkey'].decode()
+            self.auth_key = self.config['auth']['authkey']
             self.auth_port = self.config['auth']['port']
-
-            self.b_auth.setEnabled(True)
-            self.setup_window.step_enable(['Create Remote User',
-                                            'Authenticate Remote User'])
+            self.subnet = self.config['auth']['subnet']
+            self.setup_window.step_enable(['Create Remote User'])
 
             if len(self.config['userlist']) > 1:
                 self.setup_window.step_enable(['Remove Remote User'])
 
         # Tunnel configured? (Requires server to be configured)
         if 'wireguard' in self.config.config:
+            self.b_auth.setEnabled(True)
             self.b_tunn.setEnabled(True)
             self.wg_port = self.config['wireguard']['port']
-            self.subnet = self.config['wireguard']['subnet']
-            self.setup_window.step_enable(['Port Forward'])
+            self.setup_window.step_enable(['Port Forward',
+                                           'Authenticate Remote User'])
 
             if platform.system().lower() == 'darwin':
                 self.wireguard = WireguardServer_macOS(config=self.config)
+
+                # Check if already running, toggle if so
+                if self.wireguard.state:
+                    self.toggle_tunnel(True)
 
 
     def config_server(self):
@@ -123,10 +129,21 @@ class Server(UI_Common):
 
             prompt = ServerConfig(self)
             prompt_result = prompt.exec_()
-            password, port = prompt.get_output()
+            password, port, subnet = prompt.get_output()
 
             if port == "":
                 port = self.auth_port
+
+            if subnet == "":
+                subnet = self.subnet
+
+            try:
+                self.subnet = ip_network(subnet)
+
+            except ValueError as e:
+                UI_Error(self, "Invalid Assignment Subnet", "Retry or leave default")
+                self.config_server()
+                return
 
             try:
                 port = int(port)
@@ -142,13 +159,14 @@ class Server(UI_Common):
 
             if prompt_result and len(password) > 0:
 
-                self.config['auth']['authkey'] = passkey(password)
+                self.config['auth']['authkey'] = passkey(password).decode()
+                self.config['auth']['subnet'] = subnet
                 self.config['auth']['port'] = port
                 self.config.save()
 
                 # this class variable is used in authentication
                 # and in sending
-                self.auth_key = self.config['auth']['authkey'].decode()
+                self.auth_key = self.config['auth']['authkey']
                 self.auth_port = self.config['auth']['port']
 
                 success = True
@@ -181,10 +199,8 @@ class Server(UI_Common):
         # Server configured! Make Create Tunnel possible.
         self.setup_window.step_disable(['Configure Server'])
         self.setup_window.step_enable(['Create Tunnel'])
-        self.b_auth.setEnabled(True)
 
-        self.setup_window.step_enable(['Create Remote User',
-                                        "Authenticate Remote User"])
+        self.setup_window.step_enable(['Create Remote User'])
 
         self.update_userview()
         self.user_timer = QTimer(self)
@@ -314,6 +330,9 @@ class Server(UI_Common):
 
             self.message.setText("Authentication server closed")
 
+            # Update HBA here in case if failed somewhere else
+            self.update_hba()
+
     def authenticated_user(self, new_user):
         """ Add authorized, newly-created, remote user to tunnel config and userlist
             1) Update userlist
@@ -332,7 +351,10 @@ class Server(UI_Common):
 
         self.wireguard.update_config(self.config['userlist'])
 
+        self.update_hba()
+
     def remove_user(self, username):
+        """ Remove remote user, update wireguard, update hba """
 
         new_userlist = self.config['userlist']
 
@@ -342,59 +364,104 @@ class Server(UI_Common):
                 new_userlist.remove(user)
                 break
 
-        self.wireguard.update_config(new_userlist)
         self.config['userlist'] = new_userlist
         self.config.save()
+
+        if hasattr(self, 'wireguard'):
+            self.wireguard.update_config(new_userlist)
+
+        self.update_hba()
+
+        print("... Removed", username)
+        self.message.setText(f"_Removed {username}_")
+
+        # No need to remove from userview, it will automatically next refresh
 
     def create_database(self):
         """ Create a new PostgreSQL database based on Resolve template """
         # # TODO:
 
+    def database_connect(self):
+        added = super().database_connect()
+        if added:
+            self.update_hba()
+
     def update_hba(self):
-        """ Update the access permissions in the PostgreSQL database """
+        """ Update the access permissions for all databases in list """
 
-        # TODO: grab .connection instead
-        with psycopg2.connect(user=db_user,
-                      password=db_pass,
-                      host="9.0.0.1", # TODO: Make this dynamic, not static
-                      port="5432",
-                      connect_timeout=3,
-                      database=db_name) as connection:
+        # Default hba_conf from util.default_hba
+        hba = str(default_hba)
+        hba_file = None
 
-            # Use "SHOW hba_file" to get location of hba file
-            hba_file = pd.read_sql_query(f'''SHOW hba_file''', connection).iloc[0,0]
+        for db, ui_db in self.dbses.ui_dbses.items():
 
-            # Default hba_conf
-            default_hba = (
-                f"""# pg_hba.conf was last modified by """
-                f"""Resolve Mission Control at {datetime.datetime.utcnow()}. """
-                f"""Manual edit at your own risk!\n"""
-                f"""# TYPE    DATABASE    USER    ADDRESS    METHOD\n"""
-                f"""host    all    all    127.0.0.1/32    md5\n"""
-                f"""host    all    all    ::1/128    md5\n"""
-            )
+            self.dbses.select(ui_db.db_details, fail_queitly = True)
+            connection = ui_db.connection
 
-            hba_list = hba.split('\n')
+            if connection:
 
-            # TODO: For loop through server's user database
-            db_name = db_name
-            db_user = db_user
-            user_ip = '9.0.0.6' # TODO: Make this dynamic, not static
-            hba_list[-1] = f"host    {db_name}    {db_user}    {user_ip}/32    md5\n"
-            new_hba = '\n'.join(hba_list)
+                # Use "SHOW hba_file" to get the location of hba file
+                # ... it is common across all database/connections
+                crs = connection.cursor()
+                try:
+                    crs.execute("SHOW hba_file")
 
-            with open("pg_hba_rmcc_backup.conf",'w') as bkup:
-                bkup.write(hba)
+                except psycopg2.errors.InsufficientPrivilege:
+                    UI_Error(self, "Database Error",
+                        f"The database user {ui_db.db_details['name']} must "
+                        f"be a superuser to update the "
+                        f"host-based authentication permissions")
+                    continue
 
-            # Modify new
+                hba_file = crs.fetchall()[0][0]
+
+                hba += f"""# Added by RMCS at {datetime.datetime.utcnow()}\n"""
+
+                for user in self.config['userlist']:
+                    # Allow access from these ips
+                    # (the authenticated ones)
+
+                    if user['name'] == 'Server':
+                        continue
+
+                    if user['Pk'] != "":
+                        db_name = ui_db.db_details['name']
+                        db_user = ui_db.db_details['user']
+                        user_ip = f"{user['ip']}/32"
+
+                        hba +="    ".join(['host', db_name, db_user, user_ip, 'md5'])
+                        hba += '\n'
+
+        if hba_file and connection:
+            # Snag the last hba_file and connection from the for loop
+            #  to actuall execute the file saving etc...
+
+            # Backup
+            backup_file = Path(hba_file).parent / Path("pg_hba_rmcsbackup.conf")
+
+            with open(backup_file,'w') as bkup:
+
+                with open(hba_file,'r') as file:
+                    bkup.write(file.read())
+
+            # Overwrite with new
             with open(hba_file,'w') as file:
-                file.write(new_hba)
+                file.write(hba)
 
             # Reload config
-            # True if suceeded, False if failed
-            return pd.read_sql_query(f"select pg_reload_conf()", connection).iloc[0,0]
+            crs.execute("select pg_reload_conf()")
+            out = crs.fetchall()[0][0]
+            crs.close()
 
-    def create_tunnel(self):
+            print(f">>> pg_hba.conf updated with exit code: {out}")
+
+            if out:
+                self.message.setText("_Updated Host-Based Authentication_")
+
+            # True if suceeded, False if failed
+            return out
+
+    def config_tunnel(self):
         """ Create a new Wireguard configuration
             1) Define port and subnet
             2) Create configuration based on **authenticated** users in userlist
@@ -403,7 +470,7 @@ class Server(UI_Common):
 
         prompt = TunnelConfig(self)
         prompt_result = prompt.exec_()
-        PORT, SUBNET = prompt.get_output()
+        PORT = prompt.get_output()
 
         if not prompt_result:
             return
@@ -411,23 +478,12 @@ class Server(UI_Common):
         if PORT == "":
             PORT = self.wg_port
 
-        if SUBNET == "":
-            SUBNET = self.subnet
-
         try:
             self.wg_port = int(PORT)
 
         except ValueError as e:
             UI_Error(self, "Invalid Assignment Port", "Was port as an integer?")
-            self.create_tunnel()
-            return
-
-        try:
-            self.subnet = ip_network(SUBNET)
-
-        except ValueError as e:
-            UI_Error(self, "Invalid Assignment Subnet", "Retry or leave default")
-            self.create_tunnel()
+            self.config_tunnel()
             return
 
         if platform.system().lower() == 'darwin':
@@ -452,7 +508,6 @@ class Server(UI_Common):
 
         self.config['wireguard'] = {}
         self.config['wireguard']['port'] = self.wg_port
-        self.config['wireguard']['subnet'] = self.subnet
         self.config['wireguard']['pk'] = self.wireguard.pk
         self.config['wireguard']['Pk'] = self.wireguard.Pk
         self.config['userlist'][0]['Pk'] = self.wireguard.Pk
@@ -460,6 +515,7 @@ class Server(UI_Common):
         self.config.save()
 
         self.b_tunn.setEnabled(True)
+        self.b_auth.setEnabled(True)
 
     def toggle_tunnel(self, state):
         """ Toggle the Wireguard directly with wg or wg-quick up/down
@@ -516,11 +572,12 @@ class ServerSetup(QWidget):
 
         # Prep Wireguard: method (manual or automatic), config, subet, ip, etc...
         b = self.add_step("Create Tunnel", 'icons/database_secured.png', 0,2)
-        b.clicked.connect(self.server.create_tunnel)
+        b.clicked.connect(self.server.config_tunnel)
         self.add_arrow(0,3)
 
         # Guide to turning on port forwarding
         b = self.add_step("Port Forward", 'icons/database.png', 0,4)
+        b.clicked.connect(lambda: PortForward(self.server))
 
         # Create remote user into config/database
         b = self.add_step("Create Remote User", 'icons/user.png', 1,0)
@@ -530,11 +587,6 @@ class ServerSetup(QWidget):
         # Authenticate remote user, update wireguard, update hba
         b = self.add_step("Authenticate Remote User", 'icons/user_secured.png', 1,2)
         b.clicked.connect(lambda: self.server.toggle_auth(True))
-        self.add_arrow(1,3)
-
-        # Remove remote user, update wireguard, update hba
-        b = self.add_step("Remove Remote User", 'icons/user_secured.png', 1,4)
-        b.clicked.connect(self.server.remove_user)
 
         # TODO: Dropbox auth
         # b = self.add_step("Connect Media Storage", 'icons/database.png', 2,0)
@@ -595,6 +647,20 @@ class ServerSetup(QWidget):
     def step_disable(self, keys):
         self.step_abled(keys, False)
 
+def PortForward(server):
+
+    text = f"""_Forward these ports to the server_
+
+    - TCP Port: {server.auth_port}
+    - UDP Port: {server.wg_port}
+    """
+
+    msg = QMessageBox(server)
+    msg.setTextFormat(Qt.MarkdownText)
+    msg.setText(text)
+    msg.setInformativeText("And check firewalls while you're at it!")
+    msg.setWindowTitle("Port Forwarding")
+    msg.exec_()
 
 # ----------------------- AUTHENTICATION PROMPTS AND FLOWS
 
@@ -656,6 +722,13 @@ class ServerConfig(UI_Dialog):
         layout.addWidget(info)
         layout.addWidget(self.S_PORT)
 
+        self.SUBNET = QtWidgets.QLineEdit()
+        self.SUBNET.setPlaceholderText("9.0.0.0/24")
+
+        info = QLabel("What should the Wireguard subnet be?")
+        layout.addWidget(info)
+        layout.addWidget(self.SUBNET)
+
         # OK and Cancel buttons
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -666,7 +739,7 @@ class ServerConfig(UI_Dialog):
         layout.addWidget(buttons)
 
     def get_output(self):
-        return self.S_PWD.text(), self.S_PORT.text()
+        return self.S_PWD.text(), self.S_PORT.text(), self.SUBNET.text()
 
 class TunnelConfig(UI_Dialog):
     """ Form for the Wireguard details """
@@ -683,13 +756,6 @@ class TunnelConfig(UI_Dialog):
         layout.addWidget(info)
         layout.addWidget(self.WG_PORT)
 
-        self.SUBNET = QtWidgets.QLineEdit()
-        self.SUBNET.setPlaceholderText("9.0.0.0/24")
-
-        info = QLabel("\nWhat should the Wireguard subnet be?")
-        layout.addWidget(info)
-        layout.addWidget(self.SUBNET)
-
         # OK and Cancel buttons
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -700,7 +766,7 @@ class TunnelConfig(UI_Dialog):
         layout.addWidget(buttons)
 
     def get_output(self):
-        return self.WG_PORT.text(), self.SUBNET.text()
+        return self.WG_PORT.text()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

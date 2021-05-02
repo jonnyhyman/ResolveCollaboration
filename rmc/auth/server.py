@@ -6,8 +6,6 @@ async def handle_authentication(reader, writer, QUEUE,
     auth_request = await reader.read(1024)
     fail_cause = "UNKNOWN ERROR"
 
-    server_pass = server_pass.decode()
-
     for user in userlist: # skip server
         # loop through usernames, see if one properly decrpyts message
         # hash key to decrypt message with:
@@ -19,14 +17,14 @@ async def handle_authentication(reader, writer, QUEUE,
             message = message.decode()
 
             addr = writer.get_extra_info('peername')
-            QUEUE.put(f">>> Received {message} from {addr}")
+            # QUEUE.put(f">>> Received {message} from {addr}")
 
             PASS_CHECK, PKEYU = message.split(',')
 
             if server_pass == PASS_CHECK:
-                QUEUE.put("... Server password valid!")
+                QUEUE.put("Server password valid!")
             else:
-                QUEUE.put('!!! Server password INVALID')
+                QUEUE.put('Server password invalid')
                 continue
 
             PKEYS = userlist[0]['Pk']

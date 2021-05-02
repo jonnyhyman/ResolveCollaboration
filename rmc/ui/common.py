@@ -4,6 +4,8 @@ import pickle
 import psycopg2
 from ipaddress import ip_address, ip_network
 
+from util.networking import ping_many, get_pings
+
 Qt = QtCore.Qt
 
 # Give aliases to clean up code dramatically
@@ -130,7 +132,7 @@ class UI_Common(QWidget):
         # Recreate database list
         if self.config['dbses'] != []:
             for db in self.config['dbses']:
-                self.database_connect(db=db)
+                self.dbses.add_database(db)
 
     def closeEvent(self, event):
         """Close window"""
@@ -145,66 +147,79 @@ class UI_Common(QWidget):
         # else:
         #     event.ignore()
 
-        for db in self.dbses.databases:
-            db.disconnect()
+        for db, ui_db in self.dbses.ui_dbses.items():
+            if ui_db.connection:
+                ui_db.disconnect()
 
-    def database_connect(self, db=None):
-        """ Create/retrieve database connection """
+    def database_connect(self):
+        """ Create a new database connection """
 
-        # retrieving from saved
-        if db:
-            connection = self.dbses.add_database(db, connect=False)
-            return connection
-
-        # creating new
+        # Creating a new connection
         auth_db = DatabaseAuth(self)
         auth_result = auth_db.exec_()
 
         if auth_result:
-            db_name, db_host, db_user, db_pass = auth_db.get_output()
+            db = auth_db.get_output()
 
             # catch user errors
 
             try:
-                ip_address(db_host)
+                ip_address(db['host'])
             except ValueError as e:
                 UI_Error(self,"Invalid Database IP", str(e))
                 self.database_connect()
                 return
 
-            if len(db_pass) == 0:
+            if len(db['name']) == 0:
+                UI_Error(self,"Invalid Database Name",
+                            "Input length zero")
+                self.database_connect()
+                return
+
+            elif len(db['pass']) == 0:
                 UI_Error(self,"Invalid Server Password",
                             "Input length zero")
                 self.database_connect()
                 return
 
-            elif len(db_user) == 0:
-                UI_Error(self,"Invalid Server Password",
-                            "Input length zero")
-                self.database_connect()
-                return
-
-            elif len(db_name) == 0:
-                UI_Error(self,"Invalid Server Password",
+            elif len(db['user']) == 0:
+                UI_Error(self,"Invalid Server Username",
                             "Input length zero")
                 self.database_connect()
                 return
 
             # open handle to database
-
-            db = {
-                        'host' : db_host,
-                        'user' : db_user,
-                        'name' : db_name,
-                        'pass' : db_pass,
-            }
-
-            connection = self.dbses.add_database(db, connect=True)
+            connection = self.dbses.add_database(db, select=True)
 
             if connection:
-                self.message.setText(f"_Added database_ {db_name}")
+                # If connection was successful, add to configuration
+                self.message.setText(f"_Added database_ {db['name']}")
                 self.config['dbses'].append(db)
                 self.config.save()
+
+                return True
+            else:
+                self.database_remove(self.dbses.ui_dbses[db['name']])
+                self.database_connect()
+
+        return False
+
+    def database_remove(self, ui_db_to_remove):
+        """ Remove a created database connection """
+
+        # remove it from the layout list
+        self.dbses.lay.removeWidget(ui_db_to_remove)
+
+        # remove it from the gui
+        ui_db_to_remove.setParent(None)
+
+        # remove it from the ui_dbses dict
+        del self.dbses.ui_dbses[ui_db_to_remove.db_details['name']]
+
+        # remove it from the config
+        if ui_db_to_remove.db_details in self.config['dbses']:
+            self.config['dbses'].remove(ui_db_to_remove.db_details)
+            self.config.save()
 
 
 class UI_User(QFrame):
@@ -227,6 +242,27 @@ class UI_User(QFrame):
         # icon = icon.scaledToWidth(50, Qt.SmoothTransformation)
         self.icon.setPixmap(icon)
 
+        if user['name'] != "Server":
+            self.remove = QPushButton("×")
+            self.remove.setObjectName("b_remove")
+            self.remove.setSizePolicy(QSizePolicy.Minimum,
+                                        QSizePolicy.Minimum)
+
+            self.remove.setStyleSheet("""QPushButton#b_remove {
+                                        color: #848484;
+                                        border: 1px solid transparent;
+                                        background: transparent;
+                                        }
+                                        QPushButton#b_remove::hover{
+                                            color: white;
+                                        }
+                                        QPushButton#b_remove::pressed{
+                                            color: #848484;
+                                        }""")
+
+            ui_main = users.parent().parent()
+            self.remove.clicked.connect(lambda: ui_main.remove_user(user['name']))
+
         self.name = QLabel("__"+user['name']+"__")
         self.name.setTextFormat(Qt.MarkdownText)
 
@@ -236,13 +272,16 @@ class UI_User(QFrame):
         self.ip = QLabel(f"`{user['ip']}`")
         self.ip.setTextFormat(Qt.MarkdownText)
 
-        self.lay.addWidget(self.ping, alignment=Qt.AlignCenter)
+        if user['name'] != "Server":
+            self.lay.addWidget(self.remove, alignment=Qt.AlignCenter)
+
         self.lay.addWidget(self.icon, alignment=Qt.AlignCenter)
         self.lay.addWidget(self.name, alignment=Qt.AlignCenter)
         self.lay.addWidget(self.ip, alignment=Qt.AlignCenter)
+        self.lay.addWidget(self.ping, alignment=Qt.AlignCenter)
 
-    def set_ping(ping):
-        self.ping.setText("`"+str(ping)+"ms`")
+    def set_ping(self, ping):
+        self.ping.setText(f"`{str(ping)}`")
 
 class UI_Users(QFrame):
     """ List of users """
@@ -258,29 +297,112 @@ class UI_Users(QFrame):
         parent.addWidget(self, alignment=Qt.AlignTop)
 
     def update(self, userlist):
+        """ Update the userlist """
 
         # Remove all
         for i in reversed(range(self.lay.count())):
-            self.lay.itemAt(i).widget().setParent(None)
+            to_remove = self.lay.itemAt(i).widget()
+            # remove it from the layout list
+            self.lay.removeWidget(to_remove)
+            # remove it from the gui
+            to_remove.setParent(None)
 
+        # Add 'em back in
         for user in userlist:
             self.lay.addWidget(UI_User(user, self))
+
+        if not hasattr(self, 'set_timer') or not hasattr(self,'get_timer'):
+
+            # If just loaded up
+            self.set_timer = QTimer(self)
+            self.get_timer = QTimer(self)
+
+            self.set_timer.timeout.connect(lambda: self.ping_users(get=False))
+            self.get_timer.timeout.connect(lambda: self.ping_users(get=True))
+
+            self.set_timer.start(1000)
+            self.get_timer.start(1500)
+
+    def ping_users(self, get=False):
+        """ Ping users in the userview.
+
+            - get = False if we should be sending ping command
+            - get = True if we are retrieving ping information
+        """
+
+        if not get:
+            self.pings = ping_many(self.get_ips())
+
+        else:
+            pings = get_pings(self.pings)
+
+            # update userview
+            self.set_pings(pings)
+
+
+    def get_ips(self):
+        ips = {}
+
+        for i in range(self.lay.count()):
+            ip = self.lay.itemAt(i).widget().ip.text()[1:-1]
+
+            if ip != "":
+                ips[i] = ip
+
+        # print('...', ips)
+
+        return ips
+
+    def set_pings(self, pings):
+
+        for i in pings:
+
+            if type(i) == int:
+                # keys which are integers give us layout information
+                item = self.lay.itemAt(i)
+
+                if item:
+                    # User list can change between timer calls
+                    item.widget().set_ping(pings['returns'][i])
+
+                # print(ip, pings['returns'][i])
 
 class UI_Database(QFrame):
     """ Controller for a particular database in the database list """
 
-    def __init__(self, db, db_list=None, connect=False):
+    def __init__(self, db_details, db_list=None):
         super().__init__()
+
+        self.db_list = db_list
 
         self.setSizePolicy(QSizePolicy.Maximum,
                             QSizePolicy.Maximum)
         self.lay = QHBoxLayout(self)
-        db_list.lay.addWidget(self)
+        self.db_list.lay.addWidget(self)
+
+        self.remove = QPushButton("×")
+        self.remove.setObjectName("b_remove")
+        self.remove.setSizePolicy(QSizePolicy.Minimum,
+                                    QSizePolicy.Minimum)
+        self.remove.setStyleSheet("""QPushButton#b_remove {
+                                    color: #848484;
+                                    border: 1px solid transparent;
+                                    background: transparent;
+                                    }
+                                    QPushButton#b_remove::hover{
+                                        color: white;
+                                    }
+                                    QPushButton#b_remove::pressed{
+                                        color: #848484;
+                                    }""")
+
+        ui_main = self.db_list.parent().parent()
+        self.remove.clicked.connect(lambda: ui_main.database_remove(self))
 
         icon = QPixmap('icons/database_50.png')
         icon = icon.scaledToWidth(50, Qt.SmoothTransformation)
         self.select = QPushButton()
-        self.select.setCheckable(False)
+        self.select.setCheckable(True)
         self.select.setChecked(False)
         self.select.setObjectName("select")
         self.select.setStyleSheet(
@@ -299,12 +421,12 @@ class UI_Database(QFrame):
             }""")
         self.select.setIcon(QIcon(icon))
         self.select.setIconSize(icon.rect().size())
-        self.select.clicked.connect(lambda: self.connect(db))
+        self.select.clicked.connect(self.selected)
 
-        self.name = QLabel("__"+db['name']+"__")
+        self.name = QLabel("__"+db_details['name']+"__")
         self.name.setTextFormat(Qt.MarkdownText)
 
-        self.host = QLabel(db['host'])
+        self.host = QLabel(db_details['host'])
         self.host.setTextFormat(Qt.MarkdownText)
 
         self.status = QLabel("_Disconnected_")
@@ -316,37 +438,41 @@ class UI_Database(QFrame):
         details.addWidget(self.status, alignment=Qt.AlignLeft)
         details.setSpacing(0)
 
+        self.lay.addWidget(self.remove, alignment=Qt.AlignCenter)
         self.lay.addWidget(self.select, alignment=Qt.AlignCenter)
         self.lay.addLayout(details)
 
         self.connection = None
+        self.db_details = db_details
 
-        if connect:
-            success = self.connect(db)
+    def selected(self):
+        self.db_list.select(self.db_details)
 
-            if not success:
-                db_list.lay.removeWidget(self)
-                del self
+    def connect(self, fail_queitly=False):
 
-        # make exportable resolve xml file
-
-    def connect(self, db):
         try:
+            # these details ultimately come straight from
+            #  the config.rmc file, or from a UI Dialog
             self.connection = psycopg2.connect(
-                                  host    =  db['host'],
-                                  user    =  db['user'],
-                                  database=  db['name'],
-                                  password=  db['pass'],
+
+                                  host     =  self.db_details['host'],
+                                  user     =  self.db_details['user'],
+                                  database =  self.db_details['name'],
+                                  password =  self.db_details['pass'],
+
                                   port    = "5432",
                                   connect_timeout=1,
                                 )
 
             self.status.setText("""<span style="color:Aqua">*Connected*</span>""")
-            # self.parent().enable(self)
+            print(f"... Opened {self.db_details['name']}")
             self.select.setChecked(True)
 
         except psycopg2.OperationalError as e:
-            UI_Error(self,"Database Error", e)
+
+            if not fail_queitly:
+                UI_Error(self,"Database Error", e)
+
             return False
 
         return True
@@ -354,14 +480,32 @@ class UI_Database(QFrame):
     def disconnect(self):
 
         if self.connection:
-            print(f"... Closing {self.name.text()}")
             self.connection.close()
+            self.select.setChecked(False)
+            self.status.setText("""_Disconnected_""")
+            print(f"... Closed {self.db_details['name']}")
 
-    def set_ping(ping):
-        self.ping.setText(str(ping))
+    def export(self):
+        xml = (f"""<?xml version="1.0" encoding="UTF-8"?>
+<DBAccessKey>
+  <hostIPAddress>{self.db_details['host']}</hostIPAddress>
+  <dbName>{self.db_details['name']}</dbName>
+  <dbUsername>{self.db_details['user']}</dbUsername>
+  <dbPassword>{self.db_details['pass']}</dbPassword>
+</DBAccessKey>
+        """)
+
+        # Save config to conf file
+        saveto = FileDialog(forOpen=False, fmt='resolvedbkey',
+                            title="Save Resolve Database Access Key")
+
+        if saveto:
+            
+            with open(saveto, 'w') as save:
+                save.write(xml)
 
 class UI_Databases(QFrame):
-    """ Databases list """
+    """ List of Databases """
 
     def __init__(self, parent):
         super().__init__()
@@ -371,15 +515,46 @@ class UI_Databases(QFrame):
         self.lay = QVBoxLayout(self)
         parent.addWidget(self, alignment=Qt.AlignTop)
 
-        self.databases = []
+        self.ui_dbses = {}
 
-    def add_database(self, db, connect=False):
-        db = UI_Database(db, db_list=self, connect=connect)
-        self.databases.append(db)
-        return db.connection
+    def add_database(self, db_details, select=False):
+        """ Add database connection to list
+                - db is a dict containing database login details
+                - Called from button-click (select=True)
+                - Called from retrieving saved details (select=False)
+        """
 
-    def select_database(self, db):
-        pass
+        ui_db = UI_Database(db_details, db_list=self)
+
+        # add ui object to databases dict
+        self.ui_dbses[db_details['name']] = ui_db
+
+        if select:
+            self.select(db_details)
+
+        return ui_db.connection
+
+    def select(self, this_db, fail_queitly=False):
+        """ Select this db!
+            - this_db is a dict containing database login details
+        """
+
+        for db_name, ui_db in self.ui_dbses.items():
+            if db_name == this_db['name']:
+                ui_db.connect(fail_queitly=fail_queitly)
+            else:
+                ui_db.disconnect()
+
+    def export_selected(self):
+
+        for db_name, ui_db in self.ui_dbses.items():
+
+            if ui_db.select.isChecked():
+                ui_db.export()
+                break
+        else:
+            UI_Error(self, "Export error", "Please select a database to export")
+
 
 class DatabaseAuth(UI_Dialog):
 
@@ -404,8 +579,8 @@ class DatabaseAuth(UI_Dialog):
         self.DB_PASS.setEchoMode(QtWidgets.QLineEdit.Password)
 
         layout.addWidget(self.DB_IP)
-        layout.addWidget(self.DB_USER)
         layout.addWidget(self.DB_NAME)
+        layout.addWidget(self.DB_USER)
         layout.addWidget(self.DB_PASS)
 
         # OK and Cancel buttons
@@ -419,10 +594,13 @@ class DatabaseAuth(UI_Dialog):
         layout.addWidget(buttons)
 
     def get_output(self):
-        return (self.DB_NAME.text(),
-                self.DB_IP.text(),
-                self.DB_USER.text(),
-                self.DB_PASS.text())
+        db = {
+                    'host' : self.DB_IP.text(),
+                    'name' : self.DB_NAME.text(),
+                    'user' : self.DB_USER.text(),
+                    'pass' : self.DB_PASS.text()
+        }
+        return db
 
 # ----------------------- UI functions
 
@@ -480,29 +658,29 @@ def FileDialog(directory='', forOpen=True, fmt='', isFolder=False, title="Open F
         return ''
 
 # ----------------------- PANDAS DATAFRAME TO PYQT
-
-class pandasModel(QAbstractTableModel):
-
-    def __init__(self, data):
-        QAbstractTableModel.__init__(self)
-        self._data = data
-
-    def rowCount(self, parent=None):
-        return self._data.shape[0]
-
-    def columnCount(self, parnet=None):
-        return self._data.shape[1]
-
-    def data(self, index, role=Qt.DisplayRole):
-        if index.isValid():
-            if role == Qt.DisplayRole:
-                return str(self._data.iloc[index.row(), index.column()])
-        return None
-
-    def headerData(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self._data.columns[col]
-        return None
+#
+# class pandasModel(QAbstractTableModel):
+#
+#     def __init__(self, data):
+#         QAbstractTableModel.__init__(self)
+#         self._data = data
+#
+#     def rowCount(self, parent=None):
+#         return self._data.shape[0]
+#
+#     def columnCount(self, parnet=None):
+#         return self._data.shape[1]
+#
+#     def data(self, index, role=Qt.DisplayRole):
+#         if index.isValid():
+#             if role == Qt.DisplayRole:
+#                 return str(self._data.iloc[index.row(), index.column()])
+#         return None
+#
+#     def headerData(self, col, orientation, role):
+#         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+#             return self._data.columns[col]
+#         return None
 
 # ----------------------- Configuration handler
 class Config:
