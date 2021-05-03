@@ -7,9 +7,9 @@ _Assume both macOS and Windows support for all of the below:_
 
 Common:
 - DB list
-    - Removable
-    - Duplicates
-    
+    - ✔ Removable
+    - ~~Duplicates~~
+  
 - Project list
     - Simple
         - Project name
@@ -17,41 +17,40 @@ Common:
         - Users in project
 
 Client:
-- Authentication to Server
-    -  Async TCP client in the background with polling for output/updates
-        -  Terminate on cancel/crash
+- ✔ Authentication to Server
+    -  ✔ Async TCP client in the background with polling for output/updates
+        -  ✔ Terminate on cancel/crash
 
-- Wireguard configuration management
-    -  Option A: Copy and paste into Wireguard app
-        -  small gif walkthrough
-    -  Option B: Save .conf file
-        -  small gif walkthrough
+- ✔ Wireguard configuration management
+    -  ~~✔ Option A: Copy and paste into Wireguard app~~
+    -  ✔ Option B: Save .conf file
+        -  small walkthrough
 
 - Userlist
     -  Request userlist from Server
-    -  Update userlist on timer
+    -  ✔ Update userlist on timer
     -  Update whose online
         -  Whose online: Ping on timer
 
 Server:
-- Authentication to Client
-    -  Async TCP server in the background with polling for output/updates
-        -  Terminate on close
-    -  Save user details to userlist
+- ✔ Authentication to Client
+    -  ✔ Async TCP server in the background with polling for output/updates
+        -  ✔ Terminate on close
+    -  ✔ Save user details to userlist
     -  Clients can request userlist
     
 - Userlist
     -  Serve userlist to Clients
-    -  Update userlist on timer
-        -  Whose online: Ping on timer
+    -  ✔ Update userlist on timer
+        -  ✔ Whose online: Ping on timer
     
 - Wireguard management
     - Create config with post-up and post-down commands
-        -  macOS
+        -  ✔ macOS
         -  Windows
         
 - Database management
-    - Updaing hba_conf
+    - ✔ Updating hba_conf
     
 
 ## Icing on the cake

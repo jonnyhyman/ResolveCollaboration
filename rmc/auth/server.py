@@ -43,6 +43,7 @@ async def handle_authentication(reader, writer, QUEUE,
 
         except InvalidToken as e:
             # invalid username (not in userlist)
+            print('... user did not decrypt {}')
             pass
     else:
         QUEUE.put("Invalid request message (could be UNAME or SPASS)")

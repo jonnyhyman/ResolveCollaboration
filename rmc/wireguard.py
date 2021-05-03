@@ -3,6 +3,8 @@ from subprocess import Popen, PIPE
 import subprocess
 import os
 
+from ipaddress import ip_address, ip_network
+
 
 class WireguardServer_macOS:
     """ Performs all setup for a Wireguard macOS server. Must be run as root """
@@ -86,20 +88,20 @@ rm -f /usr/local/var/run/wireguard/pf_wireguard_token.txt""")
     def update_config(self, userlist):
         ''' Overwrite the config with the current userlist'''
 
+        first_ip = next(ip_network(self.subnet).hosts())
+
         # Interface always first
         server_config = (f"""
 [Interface]
 # Substitute with the subnet you chose for Wireguard earlier.
-Address = {self.subnet}
+Address = {first_ip}/32
 # Substitute with your *server's* private key
 PrivateKey = {self.pk}
 # If you chose a different port earlier when setting up port
 # forwarding on your router, update the port here to match.
 ListenPort = {self.port}
-# This prevents IPv4 & IPv6 DNS leaks when browsing the web on the
-# VPN. I chose Cloudflare's public DNS servers, but feel free to use
-# whatever provider you prefer.
-DNS = 1.1.1.1, 8.8.8.8
+# This prevents IPv4 & IPv6 DNS leaks when browsing the web on the VPN
+DNS = 1.1.1.1, 8.8.8.8, 2001:4860:4860::8888
 # This ensures our peers continue to report their Wireguard-
 # assigned IPs while connected to the VPN. This is required for
 # their traffic to get routed correctly by the firewall rules we
@@ -148,17 +150,13 @@ AllowedIPs = {user['ip']}/32
 
     @property
     def state(self):
-        if self.peers():
-            # Check if already running, and update if so
-            return True
-        else:
-            return False
+        return self.peers() != {}
 
     def up(self):
 
         # already up?
         if self.state:
-            # Check if already running, and update state if so
+            # Don't go up if already up
             return
         else:
             up = subprocess.check_output("sudo wg-quick up /usr/local/etc/wireguard/server.conf",

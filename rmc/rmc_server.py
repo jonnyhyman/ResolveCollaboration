@@ -1,5 +1,5 @@
 # rmc imports
-from ui.common import *
+from rmc_common import *
 
 from auth.server import tcp_server
 from auth.crypt import passkey, Fernet
@@ -186,6 +186,48 @@ class Server(UI_Common):
 
             self.init_userview()
 
+    def reset_server(self):
+
+        # Are you sure?
+        areyousure = UI_Dialog(self)
+        areyousure.setWindowTitle("Are you sure?")
+
+        layout = QVBoxLayout(areyousure)
+
+        info = QLabel("""# Reset Server deletes the entire configuration:
+- Server info like password hash and authentication port
+- Wireguard info like port, private and Public keys
+- User list names, ips, public keys, everything...
+
+___Are you sure you want to reset?___
+_This action cannot be undone_""")
+        info.setTextFormat(Qt.MarkdownText)
+
+        layout.addWidget(info)
+
+        # OK and Cancel buttons
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            Qt.Horizontal, areyousure)
+
+        buttons.accepted.connect(areyousure.accept)
+        buttons.rejected.connect(areyousure.reject)
+
+        layout.addWidget(buttons)
+        result = areyousure.exec_()
+
+        if result:
+            self.config.reset(True)
+
+            msg = QMessageBox(self)
+            msg.setTextFormat(Qt.MarkdownText)
+            msg.setText("Server has been reset")
+            msg.setInformativeText("Resolve Mission Control Server will close"
+                            " now. Please re-open to start a new configuration")
+            msg.setWindowTitle("Server Reset")
+            msg.exec_()
+
+            self.app.closeAllWindows()
 
     def init_userview(self):
         """ Initialize the userlist view
@@ -234,26 +276,30 @@ class Server(UI_Common):
                 ip_address(auth_new['ASSIGN_IP'])
             except ValueError as e:
                 UI_Error(self, "Invalid Assignment IP", str(e))
-                self.auth_server()
+                self.new_user()
                 return
 
             if (ip_address(auth_new['ASSIGN_IP'])
                             not in ip_network(self.subnet)):
                 UI_Error(self,"Invalid Assignment IP", f"IP must be on subnet {self.subnet}")
+                self.new_user()
                 return
 
             first_ip = next(ip_network(self.subnet).hosts())
 
             if (str(first_ip)==auth_new['ASSIGN_IP']):
                 UI_Error(self,"Invalid Assignment IP", f"IP is reserved for server")
+                self.new_user()
                 return
 
             if (auth_new['ASSIGN_IP'] in [u['ip'] for u in self.config['userlist']]):
                 UI_Error(self,"Invalid Assignment IP", f"IP is already assigned")
+                self.new_user()
                 return
 
             if len(auth_new['UNAME']) == 0:
                 UI_Error(self,"Invalid Username", "Check input and try again")
+                self.new_user()
                 return
 
             # By this point, the input is a valid authentication request
@@ -417,20 +463,26 @@ class Server(UI_Common):
 
                 hba += f"""# Added by RMCS at {datetime.datetime.utcnow()}\n"""
 
-                for user in self.config['userlist']:
+                db_name = ui_db.db_details['name']
+                db_user = ui_db.db_details['user']
+
+                hba +="    ".join(['host', db_name, db_user, self.subnet, 'md5'])
+                hba += '\n'
+
+                # for user in self.config['userlist']:
                     # Allow access from these ips
                     # (the authenticated ones)
 
-                    if user['name'] == 'Server':
-                        continue
-
-                    if user['Pk'] != "":
-                        db_name = ui_db.db_details['name']
-                        db_user = ui_db.db_details['user']
-                        user_ip = f"{user['ip']}/32"
-
-                        hba +="    ".join(['host', db_name, db_user, user_ip, 'md5'])
-                        hba += '\n'
+                    # if user['name'] == 'Server':
+                    #     continue
+                    #
+                    # if user['Pk'] != "":
+                    #     db_name = ui_db.db_details['name']
+                    #     db_user = ui_db.db_details['user']
+                    #     user_ip = f"{user['ip']}/32"
+                    #
+                    #     hba +="    ".join(['host', db_name, db_user, user_ip, 'md5'])
+                    #     hba += '\n'
 
         if hba_file and connection:
             # Snag the last hba_file and connection from the for loop
@@ -542,6 +594,7 @@ class Server(UI_Common):
         """
         self.close_authentication()
         self.toggle_tunnel(False)
+        super().closeEvent(event)
 
 class ServerSetup(QWidget):
     """ Setup window to assist server creation """
@@ -565,35 +618,40 @@ class ServerSetup(QWidget):
         self.b_setup = {}
 
         # Create login details for the server itself (internally, externally)
-        b = self.add_step("Configure Server", 'icons/database.png', 0,0)
+        b = self.add_step("Configure Server", 'ui/icons/database.png', 0,0)
         b.setEnabled(True)
         b.clicked.connect(self.server.config_server)
         self.add_arrow(0,1)
 
         # Prep Wireguard: method (manual or automatic), config, subet, ip, etc...
-        b = self.add_step("Create Tunnel", 'icons/database_secured.png', 0,2)
+        b = self.add_step("Create Tunnel", 'ui/icons/database_secured.png', 0,2)
         b.clicked.connect(self.server.config_tunnel)
         self.add_arrow(0,3)
 
         # Guide to turning on port forwarding
-        b = self.add_step("Port Forward", 'icons/database.png', 0,4)
+        b = self.add_step("Port Forward", 'ui/icons/database.png', 0,4)
         b.clicked.connect(lambda: PortForward(self.server))
 
         # Create remote user into config/database
-        b = self.add_step("Create Remote User", 'icons/user.png', 1,0)
+        b = self.add_step("Create Remote User", 'ui/icons/user.png', 1,0)
         b.clicked.connect(self.server.new_user)
         self.add_arrow(1,1)
 
         # Authenticate remote user, update wireguard, update hba
-        b = self.add_step("Authenticate Remote User", 'icons/user_secured.png', 1,2)
+        b = self.add_step("Authenticate Remote User", 'ui/icons/user_secured.png', 1,2)
         b.clicked.connect(lambda: self.server.toggle_auth(True))
 
+        # Create login details for the server itself (internally, externally)
+        b = self.add_step("Reset Server", 'ui/icons/database.png', 2,0)
+        b.setEnabled(True)
+        b.clicked.connect(self.server.reset_server)
+
         # TODO: Dropbox auth
-        # b = self.add_step("Connect Media Storage", 'icons/database.png', 2,0)
+        # b = self.add_step("Connect Media Storage", 'ui/icons/database.png', 2,0)
         # self.add_arrow(2,1)
 
         # TODO: Media mappings think this through
-        # b = self.add_step("Define Media Mapping", 'icons/database.png', 2,2)
+        # b = self.add_step("Define Media Mapping", 'ui/icons/database.png', 2,2)
 
     def add_step(self, label_text, icon, i, j):
         """ Add setup step (button) """

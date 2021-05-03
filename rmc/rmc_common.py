@@ -36,6 +36,17 @@ QTimer = QtCore.QTimer
 QPixmap = QtGui.QPixmap
 QIcon = QtGui.QIcon
 
+# Pyinstaller pathfinding
+from pathlib import Path
+
+def link(relpath):
+    bundle_dir = Path(__file__).parent
+    absolute = str((Path.cwd() / bundle_dir / relpath).absolute())
+    # print(">>> LINK >>>", absolute)
+    # print("...", bundle_dir)
+    # print("...", relpath)
+    return absolute
+
 class UI_Panel(QFrame):
     """ Panel frame with borders and Resolve-like styling """
     def __init__(self, layout, parent, borders = "all", bg="#212126"):
@@ -95,6 +106,8 @@ class UI_Common(QWidget):
         super().__init__(parent=parent)
         self.app = app
 
+        print(">>> Here is:", Path(".").absolute())
+
         self.lay0 = QHBoxLayout(self)
         self.lay0.setSpacing(0)
         self.lay0.setContentsMargins(0,0,0,0)
@@ -150,6 +163,8 @@ class UI_Common(QWidget):
         for db, ui_db in self.dbses.ui_dbses.items():
             if ui_db.connection:
                 ui_db.disconnect()
+
+        self.app.closeAllWindows()
 
     def database_connect(self):
         """ Create a new database connection """
@@ -235,9 +250,9 @@ class UI_User(QFrame):
 
         self.icon = QLabel()
         if user['name'] == 'Server':
-            icon = QPixmap('icons/database_50.png')
+            icon = QPixmap(link('ui/icons/database_50.png'))
         else:
-            icon = QPixmap('icons/user_50.png')
+            icon = QPixmap(link('ui/icons/user_50.png'))
 
         # icon = icon.scaledToWidth(50, Qt.SmoothTransformation)
         self.icon.setPixmap(icon)
@@ -321,7 +336,7 @@ class UI_Users(QFrame):
             self.get_timer.timeout.connect(lambda: self.ping_users(get=True))
 
             self.set_timer.start(1000)
-            self.get_timer.start(1500)
+            self.get_timer.start(5000)
 
     def ping_users(self, get=False):
         """ Ping users in the userview.
@@ -332,13 +347,18 @@ class UI_Users(QFrame):
 
         if not get:
             self.pings = ping_many(self.get_ips())
+            # print('...get ips')
 
         else:
+            if not hasattr(self,'pings'):
+                return
+
             pings = get_pings(self.pings)
 
             # update userview
             self.set_pings(pings)
-
+            # print('...set ips', pings['returns'])
+            # print()
 
     def get_ips(self):
         ips = {}
@@ -349,23 +369,21 @@ class UI_Users(QFrame):
             if ip != "":
                 ips[i] = ip
 
-        # print('...', ips)
-
         return ips
 
     def set_pings(self, pings):
 
-        for i in pings:
+        n = 0
+        for i in range(self.lay.count()):
+            item = self.lay.itemAt(i).widget()
+            ip = item.ip.text()[1:-1]
 
-            if type(i) == int:
-                # keys which are integers give us layout information
-                item = self.lay.itemAt(i)
+            if ip != "" and len(pings['returns']) > i:
+                # If list length has changed, it's not guaranteed it'll work yet
 
-                if item:
-                    # User list can change between timer calls
-                    item.widget().set_ping(pings['returns'][i])
+                item.set_ping(pings['returns'][n])
+                n += 1
 
-                # print(ip, pings['returns'][i])
 
 class UI_Database(QFrame):
     """ Controller for a particular database in the database list """
@@ -399,7 +417,7 @@ class UI_Database(QFrame):
         ui_main = self.db_list.parent().parent()
         self.remove.clicked.connect(lambda: ui_main.database_remove(self))
 
-        icon = QPixmap('icons/database_50.png')
+        icon = QPixmap(link('ui/icons/database_50.png'))
         icon = icon.scaledToWidth(50, Qt.SmoothTransformation)
         self.select = QPushButton()
         self.select.setCheckable(True)
@@ -461,7 +479,7 @@ class UI_Database(QFrame):
                                   password =  self.db_details['pass'],
 
                                   port    = "5432",
-                                  connect_timeout=1,
+                                  connect_timeout=10,
                                 )
 
             self.status.setText("""<span style="color:Aqua">*Connected*</span>""")
@@ -500,7 +518,7 @@ class UI_Database(QFrame):
                             title="Save Resolve Database Access Key")
 
         if saveto:
-            
+
             with open(saveto, 'w') as save:
                 save.write(xml)
 
@@ -739,3 +757,8 @@ class Config:
 
         with open(self.fileto, 'wb') as file:
             pickle.dump(self.config, file)
+
+    def reset(self, areyousure=False):
+        if areyousure and self.fileto.exists():
+            self.fileto.unlink()
+            print(f">>> DELETED {self.fileto}")

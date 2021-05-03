@@ -1,5 +1,5 @@
 # package imports
-from ui.common import *
+from rmc_common import *
 
 from auth.client import tcp_client
 from auth.crypt import passkey, Fernet
@@ -14,6 +14,7 @@ import sys
 
 import datetime
 from multiprocessing import Process, Queue
+import multiprocessing
 
 
 """
@@ -131,10 +132,8 @@ class Client(UI_Common):
 Address = {IP_ASSIGNED}/32
 # Substitute with *this peer's* private key.
 PrivateKey = {auth_tcp.pk}
-# This prevents IPv4 & IPv6 DNS leaks when browsing the web on the
-# VPN. I chose Cloudflare's public DNS servers, but feel free to use
-# whatever provider you prefer.
-DNS = 1.1.1.1, 8.8.8.8
+# This prevents IPv4 & IPv6 DNS leaks when browsing the web on the VPN
+DNS = 1.1.1.1, 8.8.8.8, 2001:4860:4860::8888
 
 [Peer]
 # Substitute with your *server's* public key
@@ -178,16 +177,16 @@ class ClientSetup(QWidget):
         self.setStyleSheet(stylesheet)
         self.b_setup = {}
 
-        b = self.add_step("Authenticate", 'icons/database_secured.png', 0,0)
+        b = self.add_step("Authenticate", link('ui/icons/database_secured.png'), 0,0)
         b.clicked.connect(self.client.auth_client)
         b.setEnabled(True)
 
         self.add_arrow(0,1)
-        b = self.add_step("Connect to Tunnel", 'icons/user_secured.png', 0,2)
+        b = self.add_step("Connect to Tunnel", link('ui/icons/user_secured.png'), 0,2)
         b.clicked.connect(lambda: ConnectToTunnel(self))
 
         self.add_arrow(0,3)
-        b = self.add_step("Export Database Access Key", 'icons/database_secured.png', 0,4)
+        b = self.add_step("Export Database Access Key", link('ui/icons/database_secured.png'), 0,4)
         b.clicked.connect(self.client.dbses.export_selected)
         b.setEnabled(True)
 
@@ -375,6 +374,7 @@ class ClientAuthTCP(UI_Dialog):
         self.tcp_queue.close()
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
 
     app = QApplication(sys.argv)
 
