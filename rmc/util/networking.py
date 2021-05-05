@@ -3,7 +3,7 @@ import platform
 
 def ping_many_macos(request, errors=False):
 
-    commands = [f"ping -i 1 -t 9 -c 5 {ip}" for ip in request.values()]
+    commands = [f"ping -i 1 -t 5 -c 2 {ip}" for ip in request.values()]
 
     # Check if running, return if so
 

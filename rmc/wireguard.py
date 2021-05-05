@@ -17,7 +17,6 @@ class WireguardServer_macOS:
             self.port = config['wireguard']['port']
             self.pk = config['wireguard']['pk']
             self.Pk = config['wireguard']['Pk']
-            self.update_config(config['userlist'])
             return
 
         self.subnet = subnet

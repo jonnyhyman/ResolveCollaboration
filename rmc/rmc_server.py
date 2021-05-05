@@ -53,7 +53,7 @@ class Server(UI_Common):
         self.b_dbcon = QPushButton("⇄")
         self.b_dbcyc = QPushButton("⟳")
         self.b_dbdel = QPushButton("-")
-        self.b_setup = QPushButton("Setup")
+        # self.b_setup = QPushButton("Setup")
         self.b_tunn = QPushButton("Activate Tunnel")
         self.b_auth = QPushButton("Activate Authentication")
 
@@ -76,12 +76,9 @@ class Server(UI_Common):
                                         }}""")
 
 
-        for b in [self.b_setup, self.b_tunn, self.b_auth]:
+        # for b in [self.b_setup, self.b_tunn, self.b_auth]:
+        for b in [self.b_tunn, self.b_auth]:
             self.p_RU.lay.addWidget(b)
-
-        self.message = QLabel("")
-        self.message.setTextFormat(Qt.MarkdownText)
-        self.p_RB.lay.addWidget(self.message, alignment=Qt.AlignBottom)
 
         self.b_tunn.setEnabled(False)
         self.b_tunn.setCheckable(True)
@@ -91,12 +88,17 @@ class Server(UI_Common):
 
         # BUTTON CONNECT
         self.setup_window = ServerSetup(self)
-        self.b_setup.clicked.connect(self.setup_window.show)
+        self.p_RB.lay.addWidget(self.setup_window)
+
+        self.message = QLabel("")
+        self.message.setTextFormat(Qt.MarkdownText)
+        self.p_RB.lay.addWidget(self.message, alignment=Qt.AlignBottom)
+
+        # self.b_setup.clicked.connect(self.setup_window.show)
         self.b_dbcon.clicked.connect(self.database_connect)
         self.b_dbcyc.clicked.connect(self.database_restart)
         self.b_tunn.clicked.connect(self.toggle_tunnel)
         self.b_auth.clicked.connect(self.toggle_auth)
-
 
         # Sever configured?
         if self.config['auth'] != {}:
@@ -119,6 +121,8 @@ class Server(UI_Common):
 
             if platform.system().lower() == 'darwin':
                 self.wireguard = WireguardServer_macOS(config=self.config)
+
+                print(">>> CONFIRMED LATEST VERSION")
 
                 # Check if already running, set ui state
                 if self.wireguard.state:
@@ -184,6 +188,7 @@ class Server(UI_Common):
         # Create userlist
         if success:
 
+            # Reset the entire userlist
             self.config['userlist'] = []
 
             self.new_user({
@@ -472,16 +477,19 @@ _This action cannot be undone_""")
             # Find where postgres is installed (datadir and pg_ctl in bin)
             crs.execute("select name, setting from pg_settings where name = 'data_directory';")
             data_dir = Path(crs.fetchall()[0][1])
-            pg_ctl = data.parent / 'bin/pg_ctl'
+            pg_ctl = data_dir.absolute().parent / 'bin/pg_ctl'
 
-        command = f'''su postgres -c "{pg_ctl} restart -D {data_dir}"'''
+        # Change directory into PostgreSQL and then restart with pg_ctl
+        command = ( f'''cd {data_dir.absolute().parent}; '''
+                    f'''sudo su postgres -c "{pg_ctl} restart -D {data_dir}"''')
         print("... restarting postgres >>>", command)
 
         out = subprocess.check_output(command,
                                         shell=True,
                                         stderr=subprocess.STDOUT)
 
-        print(f">>> postgres restarted with exit code: {out}")
+        print(f">>> postgres restarted with exit message:")
+        print(str(out,'utf-8'))
         #
         # if out:
         #     self.message.setText("_Updated Host-Based Authentication_")
@@ -590,8 +598,6 @@ _This action cannot be undone_""")
                                                         port = self.wg_port,
                                                         subnet = self.subnet)
 
-                # self.wireguard.update_config(self.config['userlist'])
-
             except PermissionError:
                 UI_Error(self, "Wireguard Configuration Failed",
                         "Must be run as root\n>>> sudo python rmc_server.py")
@@ -646,6 +652,10 @@ _This action cannot be undone_""")
                          quit_msg,
                          QMessageBox.Yes,
                          QMessageBox.No)
+
+        icon = QPixmap(link('ui/icons/wireguard.png'))
+        icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
+        reply.setIconPixmap(icon)
 
         if reply == QtWidgets.QMessageBox.Yes:
             self.toggle_tunnel(False)

@@ -12,12 +12,13 @@ async def handle_authentication(reader, writer, QUEUE,
         key = str(passkey(user['name']), 'utf-8')
 
         try:
-            # decrypt message
-            message = Fernet(key).decrypt(auth_request)
-            message = message.decode()
 
             addr = writer.get_extra_info('peername')
             # QUEUE.put(f">>> Received {message} from {addr}")
+
+            # decrypt message
+            message = Fernet(key).decrypt(auth_request)
+            message = message.decode()
 
             PASS_CHECK, PKEYU = message.split(',')
 
@@ -28,10 +29,11 @@ async def handle_authentication(reader, writer, QUEUE,
                 continue
 
             PKEYS = userlist[0]['Pk']
+            SERVER_IP = userlist[0]['ip']
             ASSIGN_IP = user['ip']
             WG_PORT = wg_port
 
-            auth_reply = f"{PKEYS},{ASSIGN_IP},{WG_PORT}"
+            auth_reply = f"{PKEYS},{SERVER_IP},{ASSIGN_IP},{WG_PORT}"
             auth_reply = Fernet(server_pass).encrypt(auth_reply.encode())
             writer.write(auth_reply)
             await writer.drain()

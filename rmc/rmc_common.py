@@ -238,18 +238,21 @@ class UI_User(QFrame):
         self.lay = QVBoxLayout(self)
         users.lay.addWidget(self)
 
+        scaled = lambda i: i.scaledToWidth(100, Qt.SmoothTransformation)
         self.icon = QLabel()
         if user['name'] == 'Server':
-            icon = QPixmap(link('ui/icons/database_50.png'))
+            self.icon_disc = scaled(QPixmap(link('ui/icons/database_disconnected.png')))
+            self.icon_conn = scaled(QPixmap(link('ui/icons/database.png')))
         else:
-            icon = QPixmap(link('ui/icons/user_50.png'))
+            self.icon_disc = scaled(QPixmap(link('ui/icons/user_disconnected.png')))
+            self.icon_conn = scaled(QPixmap(link('ui/icons/user.png')))
 
-        # icon = icon.scaledToWidth(50, Qt.SmoothTransformation)
-        self.icon.setPixmap(icon)
+        self.icon.setPixmap(self.icon_disc)
 
         if user['name'] != "Server":
             self.remove = QPushButton("×")
             self.remove.setObjectName("b_remove")
+            self.remove.setToolTip(f"Remove {user['name']} from the user list")
             self.remove.setSizePolicy(QSizePolicy.Minimum,
                                         QSizePolicy.Minimum)
 
@@ -293,6 +296,15 @@ class UI_User(QFrame):
             ping = (f"`{ping}`")
 
         self.ping.setText(ping)
+
+        # Update icon
+
+        if ping == '``':
+            self.icon.setPixmap(self.icon_disc)
+
+        else:
+            self.icon.setPixmap(self.icon_conn)
+
 
 class UI_Users(QFrame):
     """ List of users """
@@ -699,6 +711,11 @@ class Config:
     default = {
                 'auth' : {},
                 'dbses': [],
+                'userlist':[{
+                                "name"  : "Server",
+                                "Pk"    : "",
+                                "ip"    : "",
+                            }],
     }
 
     def __init__(self, parent):

@@ -40,7 +40,6 @@ class Client(UI_Common):
         # Define buttons
         self.b_dbcon = QPushButton("⇄")
         self.b_dbcon.setToolTip("Connect to Resolve Database")
-        self.p_LU.lay.addWidget(self.b_dbcon)
         self.b_dbcon.setObjectName("b_dbcon")
         self.b_dbcon.setStyleSheet("""QPushButton#b_dbcon {
                                     color: #848484;
@@ -52,34 +51,35 @@ class Client(UI_Common):
                                     QPushButton#b_dbcon::pressed{
                                     	color: #848484;
                                     }""")
+        self.b_dbcon.clicked.connect(self.database_connect)
+        self.p_LU.lay.addWidget(self.b_dbcon)
 
-
-        self.b_setup = QPushButton("Setup")
-        self.b_tunn = QPushButton("Activate Tunnel")
-        self.b_sync = QPushButton("Sync Status")
-
-        for b in [self.b_setup]:#, self.b_tunn, self.b_sync]:
-            self.p_RU.lay.addWidget(b)
-
-        """TODO:
-                - b_tunn should activate the Wireguard tunnel automatically
-                - b_sync should open a window which shows the media sync status
-        """
-
-        self.b_tunn.setEnabled(False)
-        self.b_sync.setEnabled(False)
+        self.subtitle = QLabel("## Welcome to Resolve Mission Control")
+        self.subtitle.setTextFormat(Qt.MarkdownText)
+        self.p_RU.lay.addWidget(self.subtitle, alignment=Qt.AlignCenter)
 
         # Resolve database views
         self.resolvedb_connect = False
+
+        self.setup_window = ClientSetup(self)
+        self.p_RB.lay.addWidget(self.setup_window)
 
         self.message = QLabel("")
         self.message.setTextFormat(Qt.MarkdownText)
         self.p_RB.lay.addWidget(self.message, alignment=Qt.AlignBottom)
 
-        # BUTTON CONNECT
-        self.setup_window = ClientSetup(self)
-        self.b_setup.clicked.connect(self.setup_window.show)
-        self.b_dbcon.clicked.connect(self.database_connect)
+        # USER LIST AND STATUS
+        if self.config['auth'] != {}:
+
+            if self.config['auth']['client_username'] != "":
+                self.subtitle.setText(f"## {self.config['auth']['client_username']}")
+
+        update_function = lambda: self.users.update(self.config['userlist'])
+
+        update_function()
+        self.user_timer = QTimer(self)
+        self.user_timer.timeout.connect(update_function)
+        self.user_timer.start(5000)
 
     def auth_client(self):
         """ Authorize client over TCP with the RMC Server """
@@ -121,10 +121,11 @@ class Client(UI_Common):
             # By this point, the input is a valid authentication request
             auth_tcp = ClientAuthTCP(self)
             auth_tcp.exec_()
+
             if auth_tcp.tcp_authentic:
 
                 # Create Wireguard tunnel config file
-                PKEYS, IP_ASSIGNED, WG_PORT = auth_tcp.tcp_authentic
+                PKEYS, S_IP, IP_ASSIGNED, WG_PORT = auth_tcp.tcp_authentic
 
                 client_config = (f"""
 [Interface]
@@ -149,6 +150,10 @@ AllowedIPs = 0.0.0.0/0, ::/0
 PersistentKeepalive = 25
                 """)
 
+                self.config['userlist'][0]['ip'] = S_IP
+                self.config['userlist'][0]['Pk'] = PKEYS
+                self.config.save()
+
                 # Save config to conf file
                 saveto = FileDialog(forOpen=False, fmt='conf',
                                     title="Save Wireguard Configuration File")
@@ -162,6 +167,7 @@ class ClientSetup(QWidget):
 
     def __init__(self, client, parent=None):
         super().__init__(parent=parent)
+
         self.client = client
         self.setWindowTitle("Client Setup")
 
@@ -329,6 +335,9 @@ class ClientAuth(UI_Dialog):
         client.config['auth']['server_port'] = self.auth_request['S_PORT']
         client.config.save()
 
+        if self.auth_request['UNAME'] != "":
+            client.subtitle.setText(f"## { self.auth_request['UNAME'] }")
+
         return (self.auth_request)
 
 
@@ -405,7 +414,11 @@ if __name__ == '__main__':
     w = Client(app)
     w.show()
 
-    if len(sys.argv) > 1 and sys.argv[1] == 'setup':
-        w.setup_window.show()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'reset':
+            areyousure = input("Are you sure you want to reset the config? (y/n)")
+
+            if areyousure =='y':
+                w.config.reset(True)
 
     sys.exit(app.exec_())

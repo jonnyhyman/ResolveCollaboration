@@ -24,8 +24,8 @@ async def tcp_authenticate_request(QUEUE, S_IP, S_PORT, SPASS, encrypted):
         auth_reply = auth_reply.decode()
         QUEUE.put(f"Server Authentication Reply: {auth_reply}")
 
-        PKEYS, IP_ASSIGNED, WG_PORT = auth_reply.split(',')
-        QUEUE.put([PKEYS, IP_ASSIGNED, WG_PORT])
+        auth_reply = auth_reply.split(',')
+        QUEUE.put(auth_reply)
 
     except InvalidToken as e:
         QUEUE.put(f"Server Authentication Error: {auth_reply.decode()}")

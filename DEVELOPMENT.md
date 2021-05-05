@@ -1,6 +1,9 @@
 # Development todo list:
 _(many things here may be in code TODOs or not)_
 
+
+---
+
 ## Minimum release
 _Assume both macOS and Windows support for all of the below:_
 
@@ -52,6 +55,7 @@ Server:
 - Database management
     - ✔ Updating hba_conf
     
+---
 
 ## Icing on the cake
 
