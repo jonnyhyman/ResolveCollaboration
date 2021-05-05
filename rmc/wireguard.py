@@ -157,10 +157,15 @@ AllowedIPs = {user['ip']}/32
         # already up?
         if self.state:
             # Don't go up if already up
+            print('... Wireguard is already up')
             return
         else:
-            up = subprocess.check_output("sudo wg-quick up /usr/local/etc/wireguard/server.conf",
-                                            shell=True, stderr=subprocess.STDOUT)
+            up = subprocess.check_output(
+                "sudo wg-quick up /usr/local/etc/wireguard/server.conf",
+
+                shell=True,
+                stderr=subprocess.STDOUT)
+
             print(str(up,'utf-8'))
 
     def show(self):
@@ -169,9 +174,15 @@ AllowedIPs = {user['ip']}/32
 
     def down(self):
         if not self.state:
+            print('... Wireguard is already down')
             return
 
-        down = subprocess.check_output("sudo wg-quick down /usr/local/etc/wireguard/server.conf", shell=True, stderr=subprocess.STDOUT)
+        down = subprocess.check_output(
+                "sudo wg-quick down /usr/local/etc/wireguard/server.conf",
+
+                shell=True,
+                stderr=subprocess.STDOUT)
+
         print(str(down,'utf-8'))
 
     def pk_Pk_pair(self):
@@ -194,7 +205,6 @@ AllowedIPs = {user['ip']}/32
         """ Returns a dict containing all peers in the Server config.
                 like: {Pk: {'ip':'...', 'handshake': True}}
         """
-
 
         proc = Popen(['wg','show'], stdout=PIPE, stderr=PIPE)
         wg, err = proc.communicate()

@@ -19,7 +19,11 @@ import sys
 
 import asyncio
 import datetime
+
 from multiprocessing import Process, Queue
+from subprocess import Popen, PIPE
+import subprocess
+
 import platform
 
 """
@@ -47,13 +51,17 @@ class Server(UI_Common):
         # Define buttons
         self.b_dbadd = QPushButton("+")
         self.b_dbcon = QPushButton("⇄")
+        self.b_dbcyc = QPushButton("⟳")
         self.b_dbdel = QPushButton("-")
         self.b_setup = QPushButton("Setup")
         self.b_tunn = QPushButton("Activate Tunnel")
         self.b_auth = QPushButton("Activate Authentication")
 
+        self.b_dbcon.setToolTip("Connect to Resolve Database")
+        self.b_dbcyc.setToolTip("Restart PostgreSQL Server")
+
         # for b in [self.b_dbadd, self.b_dbcon, self.b_dbdel]:
-        for b in [self.b_dbcon]: # TODO: Expand to add and del
+        for b in [self.b_dbcon, self.b_dbcyc]: # TODO: Expand to add and del
             self.p_LU.lay.addWidget(b)
             b.setObjectName("LU_buttons")
             b.setStyleSheet(f"""QPushButton#LU_buttons {{
@@ -85,8 +93,10 @@ class Server(UI_Common):
         self.setup_window = ServerSetup(self)
         self.b_setup.clicked.connect(self.setup_window.show)
         self.b_dbcon.clicked.connect(self.database_connect)
+        self.b_dbcyc.clicked.connect(self.database_restart)
         self.b_tunn.clicked.connect(self.toggle_tunnel)
         self.b_auth.clicked.connect(self.toggle_auth)
+
 
         # Sever configured?
         if self.config['auth'] != {}:
@@ -110,7 +120,7 @@ class Server(UI_Common):
             if platform.system().lower() == 'darwin':
                 self.wireguard = WireguardServer_macOS(config=self.config)
 
-                # Check if already running, toggle if so
+                # Check if already running, set ui state
                 if self.wireguard.state:
                     self.toggle_tunnel(True)
 
@@ -223,7 +233,7 @@ _This action cannot be undone_""")
             msg.setTextFormat(Qt.MarkdownText)
             msg.setText("Server has been reset")
             msg.setInformativeText("Resolve Mission Control Server will close"
-                            " now. Please re-open to start a new configuration")
+                            " now. Re-open to start a new configuration")
             msg.setWindowTitle("Server Reset")
             msg.exec_()
 
@@ -241,13 +251,12 @@ _This action cannot be undone_""")
         # Server configured! Make Create Tunnel possible.
         self.setup_window.step_disable(['Configure Server'])
         self.setup_window.step_enable(['Create Tunnel'])
-
         self.setup_window.step_enable(['Create Remote User'])
 
         self.update_userview()
         self.user_timer = QTimer(self)
         self.user_timer.timeout.connect(self.update_userview)
-        self.user_timer.start(1000)
+        self.user_timer.start(2000)
 
     def update_userview(self):
         """ Update userlist view
@@ -428,9 +437,56 @@ _This action cannot be undone_""")
         # # TODO:
 
     def database_connect(self):
+
         added = super().database_connect()
+
         if added:
             self.update_hba()
+
+    def database_restart(self):
+        """ Restart PostgreSQL """
+
+        do = False
+
+        quit_msg = "Restart the PostgreSQL Server?"
+        reply = QMessageBox.question(self, 'Restart PostgreSQL',
+                         quit_msg,
+                         QMessageBox.Yes,
+                         QMessageBox.No)
+
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
+
+        with psycopg2.connect(
+                    # the `postgres` db comes standard issue
+                    database="postgres",
+                    user="postgres",
+                    password="DaVinci",
+                    host="127.0.0.1",
+                    port="5432",
+                    connect_timeout=3,
+                  ) as connection:
+
+            crs = connection.cursor()
+
+            # Find where postgres is installed (datadir and pg_ctl in bin)
+            crs.execute("select name, setting from pg_settings where name = 'data_directory';")
+            data_dir = Path(crs.fetchall()[0][1])
+            pg_ctl = data.parent / 'bin/pg_ctl'
+
+        command = f'''su postgres -c "{pg_ctl} restart -D {data_dir}"'''
+        print("... restarting postgres >>>", command)
+
+        out = subprocess.check_output(command,
+                                        shell=True,
+                                        stderr=subprocess.STDOUT)
+
+        print(f">>> postgres restarted with exit code: {out}")
+        #
+        # if out:
+        #     self.message.setText("_Updated Host-Based Authentication_")
+        # else:
+        #     self.message.setText("__Host-Based Authentication failed to update__")
 
     def update_hba(self):
         """ Update the access permissions for all databases in list """
@@ -449,6 +505,7 @@ _This action cannot be undone_""")
                 # Use "SHOW hba_file" to get the location of hba file
                 # ... it is common across all database/connections
                 crs = connection.cursor()
+
                 try:
                     crs.execute("SHOW hba_file")
 
@@ -468,21 +525,6 @@ _This action cannot be undone_""")
 
                 hba +="    ".join(['host', db_name, db_user, self.subnet, 'md5'])
                 hba += '\n'
-
-                # for user in self.config['userlist']:
-                    # Allow access from these ips
-                    # (the authenticated ones)
-
-                    # if user['name'] == 'Server':
-                    #     continue
-                    #
-                    # if user['Pk'] != "":
-                    #     db_name = ui_db.db_details['name']
-                    #     db_user = ui_db.db_details['user']
-                    #     user_ip = f"{user['ip']}/32"
-                    #
-                    #     hba +="    ".join(['host', db_name, db_user, user_ip, 'md5'])
-                    #     hba += '\n'
 
         if hba_file and connection:
             # Snag the last hba_file and connection from the for loop
@@ -509,6 +551,9 @@ _This action cannot be undone_""")
 
             if out:
                 self.message.setText("_Updated Host-Based Authentication_")
+            else:
+                self.message.setText("__Host-Based Authentication failed to update__")
+
 
             # True if suceeded, False if failed
             return out
@@ -545,7 +590,7 @@ _This action cannot be undone_""")
                                                         port = self.wg_port,
                                                         subnet = self.subnet)
 
-                self.wireguard.update_config(self.config['userlist'])
+                # self.wireguard.update_config(self.config['userlist'])
 
             except PermissionError:
                 UI_Error(self, "Wireguard Configuration Failed",
@@ -587,13 +632,24 @@ _This action cannot be undone_""")
             self.wireguard.down()
             self.message.setText("Wireguard tunnel closed!")
 
+        self.b_tunn.setChecked(state)
+
     def closeEvent(self, event):
         """ Upon closing server:
             - Shutdown authentication server
             - Shutdown Wireguard tunnel
         """
         self.close_authentication()
-        self.toggle_tunnel(False)
+
+        quit_msg = "Do you want to shutdown Wireguard?"
+        reply = QMessageBox.question(self, 'Close Tunnel?',
+                         quit_msg,
+                         QMessageBox.Yes,
+                         QMessageBox.No)
+
+        if reply == QtWidgets.QMessageBox.Yes:
+            self.toggle_tunnel(False)
+
         super().closeEvent(event)
 
 class ServerSetup(QWidget):

@@ -16,6 +16,8 @@ import datetime
 from multiprocessing import Process, Queue
 import multiprocessing
 
+import webbrowser
+import os
 
 """
 Client app:
@@ -29,9 +31,6 @@ class Client(UI_Common):
     """ Client window """
 
     context = 'client'
-    subnet = '9.0.0.0/24'
-    auth_port = 51820 # TODO: Test on 51820 instead
-    wg_port = 51820
 
     def __init__(self, app, parent=None):
         super().__init__(app, parent=parent)
@@ -40,6 +39,7 @@ class Client(UI_Common):
 
         # Define buttons
         self.b_dbcon = QPushButton("⇄")
+        self.b_dbcon.setToolTip("Connect to Resolve Database")
         self.p_LU.lay.addWidget(self.b_dbcon)
         self.b_dbcon.setObjectName("b_dbcon")
         self.b_dbcon.setStyleSheet("""QPushButton#b_dbcon {
@@ -58,13 +58,14 @@ class Client(UI_Common):
         self.b_tunn = QPushButton("Activate Tunnel")
         self.b_sync = QPushButton("Sync Status")
 
-        for b in [self.b_setup, self.b_tunn, self.b_sync]:
+        for b in [self.b_setup]:#, self.b_tunn, self.b_sync]:
             self.p_RU.lay.addWidget(b)
 
         """TODO:
                 - b_tunn should activate the Wireguard tunnel automatically
                 - b_sync should open a window which shows the media sync status
         """
+
         self.b_tunn.setEnabled(False)
         self.b_sync.setEnabled(False)
 
@@ -183,7 +184,8 @@ class ClientSetup(QWidget):
 
         self.add_arrow(0,1)
         b = self.add_step("Connect to Tunnel", link('ui/icons/user_secured.png'), 0,2)
-        b.clicked.connect(lambda: ConnectToTunnel(self))
+        b.clicked.connect(lambda: ConnectToTunnel(client))
+        b.setEnabled(True)
 
         self.add_arrow(0,3)
         b = self.add_step("Export Database Access Key", link('ui/icons/database_secured.png'), 0,4)
@@ -237,12 +239,34 @@ def ConnectToTunnel(client):
 - Open the .conf file you saved
 - Activate"""
 
+    installed = Path("/Applications/WireGuard.app").exists()
+
+    if not installed:
+        openmaybe = "Wireguard is not installed. Do you want to install it?"
+    else:
+        openmaybe = "Do you want to open Wireguard?"
+
+    icon = QPixmap(link('ui/icons/wireguard.png'))
+    icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
+
     msg = QMessageBox(client)
     msg.setTextFormat(Qt.MarkdownText)
     msg.setText(text)
-    msg.setInformativeText("")
+    msg.setInformativeText(openmaybe)
+    msg.setIconPixmap(icon)
     msg.setWindowTitle("Connect to Tunnel")
+    open_yes = msg.addButton(QMessageBox.Open)
+    open_no =  msg.addButton(QMessageBox.No)
     msg.exec_()
+
+    open = (msg.clickedButton() == open_yes)
+
+    if installed and open:
+        os.system("open /Applications/WireGuard.app")
+
+    elif not installed and open:
+        app = ("""https://apps.apple.com/us/app/wireguard/id1451685025?mt=12""")
+        webbrowser.open(app, new=2)
 
 # ----------------------- AUTHENTICATION PROMPTS AND FLOWS
 

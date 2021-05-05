@@ -150,16 +150,6 @@ class UI_Common(QWidget):
     def closeEvent(self, event):
         """Close window"""
 
-        # Helpful eventually maybe:
-        # quit_msg = "Are you sure you want to exit the program?"
-        # reply = QtWidgets.QMessageBox.question(self, 'Message',
-        #                  quit_msg, QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No)
-        #
-        # if reply == QtWidgets.QMessageBox.Yes:
-        #     event.accept()
-        # else:
-        #     event.ignore()
-
         for db, ui_db in self.dbses.ui_dbses.items():
             if ui_db.connection:
                 ui_db.disconnect()
@@ -296,7 +286,13 @@ class UI_User(QFrame):
         self.lay.addWidget(self.ping, alignment=Qt.AlignCenter)
 
     def set_ping(self, ping):
-        self.ping.setText(f"`{str(ping)}`")
+
+        if '--' not in ping:
+            ping = f'<span style="color:Aqua"><code>{ping}</code></span>'
+        else:
+            ping = (f"`{ping}`")
+
+        self.ping.setText(ping)
 
 class UI_Users(QFrame):
     """ List of users """
@@ -325,40 +321,31 @@ class UI_Users(QFrame):
         # Add 'em back in
         for user in userlist:
             self.lay.addWidget(UI_User(user, self))
+            self.ping_users(only_set=True)
 
-        if not hasattr(self, 'set_timer') or not hasattr(self,'get_timer'):
+        if not hasattr(self,'ping_timer'):
 
             # If just loaded up
-            self.set_timer = QTimer(self)
-            self.get_timer = QTimer(self)
+            self.ping_timer = QTimer(self)
+            self.ping_timer.timeout.connect(self.ping_users)
+            self.ping_timer.start(10_000)
 
-            self.set_timer.timeout.connect(lambda: self.ping_users(get=False))
-            self.get_timer.timeout.connect(lambda: self.ping_users(get=True))
-
-            self.set_timer.start(1000)
-            self.get_timer.start(5000)
-
-    def ping_users(self, get=False):
-        """ Ping users in the userview.
-
-            - get = False if we should be sending ping command
-            - get = True if we are retrieving ping information
+    def ping_users(self, only_set = False):
+        """ Ping users in the userview, and update from last pings
         """
 
-        if not get:
-            self.pings = ping_many(self.get_ips())
-            # print('...get ips')
-
-        else:
-            if not hasattr(self,'pings'):
-                return
-
+        # Update from last
+        if hasattr(self,'pings'):
             pings = get_pings(self.pings)
 
             # update userview
+            # print('... ...',pings['returns'])
             self.set_pings(pings)
-            # print('...set ips', pings['returns'])
-            # print()
+
+        if not only_set:
+
+            # Go get new ones
+            self.pings = ping_many(self.get_ips())
 
     def get_ips(self):
         ips = {}
@@ -380,8 +367,8 @@ class UI_Users(QFrame):
 
             if ip != "" and len(pings['returns']) > i:
                 # If list length has changed, it's not guaranteed it'll work yet
-
-                item.set_ping(pings['returns'][n])
+                # print('... set >>>', i, n, pings['returns'][n])
+                item.set_ping(str(pings['returns'][n]))
                 n += 1
 
 
