@@ -60,7 +60,6 @@ class Server(UI_Common):
         self.b_dbcon.setToolTip("Connect to Resolve Database")
         self.b_dbcyc.setToolTip("Restart PostgreSQL Server")
 
-        # for b in [self.b_dbadd, self.b_dbcon, self.b_dbdel]:
         for b in [self.b_dbcon, self.b_dbcyc]: # TODO: Expand to add and del
             self.p_LU.lay.addWidget(b)
             b.setObjectName("LU_buttons")
@@ -75,8 +74,6 @@ class Server(UI_Common):
                                         	color: #848484;
                                         }}""")
 
-
-        # for b in [self.b_setup, self.b_tunn, self.b_auth]:
         for b in [self.b_tunn, self.b_auth]:
             self.p_RU.lay.addWidget(b)
 
@@ -94,7 +91,6 @@ class Server(UI_Common):
         self.message.setTextFormat(Qt.MarkdownText)
         self.p_RB.lay.addWidget(self.message, alignment=Qt.AlignBottom)
 
-        # self.b_setup.clicked.connect(self.setup_window.show)
         self.b_dbcon.clicked.connect(self.database_connect)
         self.b_dbcyc.clicked.connect(self.database_restart)
         self.b_tunn.clicked.connect(self.toggle_tunnel)
@@ -712,13 +708,6 @@ class ServerSetup(QWidget):
         b.setEnabled(True)
         b.clicked.connect(self.server.reset_server)
 
-        # TODO: Dropbox auth
-        # b = self.add_step("Connect Media Storage", 'ui/icons/database.png', 2,0)
-        # self.add_arrow(2,1)
-
-        # TODO: Media mappings think this through
-        # b = self.add_step("Define Media Mapping", 'ui/icons/database.png', 2,2)
-
     def add_step(self, label_text, icon, i, j):
         """ Add setup step (button) """
 
@@ -896,8 +885,5 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     w = Server(app)
     w.show()
-
-    if len(sys.argv) > 1 and sys.argv[1] == 'setup':
-        w.setup_window.show()
 
     sys.exit(app.exec_())

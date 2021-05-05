@@ -397,7 +397,7 @@ class ClientAuthTCP(UI_Dialog):
 
         elif type(update) == list:
             # This marks the end of the request, a list of
-            # [PKEYS, IP_ASSIGNED, WG_PORT]
+            # [PKEYS, SERVER_IP, IP_ASSIGNED, WG_PORT]
             self.tcp_authentic = update
 
     def closeEvent(self, event):
