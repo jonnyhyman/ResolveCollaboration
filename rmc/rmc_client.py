@@ -54,9 +54,9 @@ class Client(UI_Common):
         self.b_dbcon.clicked.connect(self.database_connect)
         self.p_LU.lay.addWidget(self.b_dbcon)
 
-        self.subtitle = QLabel("## Welcome to Resolve Mission Control")
-        self.subtitle.setTextFormat(Qt.MarkdownText)
-        self.p_RU.lay.addWidget(self.subtitle, alignment=Qt.AlignCenter)
+        self.header = QLabel("## Welcome to Resolve Mission Control")
+        self.header.setTextFormat(Qt.MarkdownText)
+        self.p_RU.lay.addWidget(self.header, alignment=Qt.AlignCenter)
 
         # Resolve database views
         self.resolvedb_connect = False
@@ -72,14 +72,18 @@ class Client(UI_Common):
         if self.config['auth'] != {}:
 
             if self.config['auth']['client_username'] != "":
-                self.subtitle.setText(f"## {self.config['auth']['client_username']}")
+                self.update_header()
 
         update_function = lambda: self.users.update(self.config['userlist'])
 
         update_function()
-        self.user_timer = QTimer(self)
-        self.user_timer.timeout.connect(update_function)
-        self.user_timer.start(5000)
+        # self.user_timer = QTimer(self)
+        # self.user_timer.timeout.connect(update_function)
+        # self.user_timer.start(60_000)
+
+    def update_header(self):
+        header  = f"""## {self.config['auth']['client_username']}\n"""
+        self.header.setText(header)
 
     def auth_client(self):
         """ Authorize client over TCP with the RMC Server """
@@ -336,7 +340,7 @@ class ClientAuth(UI_Dialog):
         client.config.save()
 
         if self.auth_request['UNAME'] != "":
-            client.subtitle.setText(f"## { self.auth_request['UNAME'] }")
+            client.update_header()
 
         return (self.auth_request)
 

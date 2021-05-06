@@ -246,7 +246,6 @@ class UI_User(QFrame):
         else:
             self.icon_disc = scaled(QPixmap(link('ui/icons/user_disconnected.png')))
             self.icon_conn = scaled(QPixmap(link('ui/icons/user.png')))
-
         self.icon.setPixmap(self.icon_disc)
 
         if user['name'] != "Server":
@@ -299,7 +298,7 @@ class UI_User(QFrame):
 
         # Update icon
 
-        if ping == '``':
+        if ping in ['``', '`-- ms`']:
             self.icon.setPixmap(self.icon_disc)
 
         else:
@@ -340,7 +339,7 @@ class UI_Users(QFrame):
             # If just loaded up
             self.ping_timer = QTimer(self)
             self.ping_timer.timeout.connect(self.ping_users)
-            self.ping_timer.start(10_000)
+            self.ping_timer.start(1000)
 
     def ping_users(self, only_set = False):
         """ Ping users in the userview, and update from last pings
@@ -709,6 +708,7 @@ class Config:
     """
 
     default = {
+                'version' : '0.0.2',
                 'auth' : {},
                 'dbses': [],
                 'userlist':[{

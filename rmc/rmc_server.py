@@ -85,7 +85,7 @@ class Server(UI_Common):
 
         # BUTTON CONNECT
         self.setup_window = ServerSetup(self)
-        self.p_RB.lay.addWidget(self.setup_window)
+        self.p_RB.lay.addWidget(self.setup_window, alignment=Qt.AlignCenter)
 
         self.message = QLabel("")
         self.message.setTextFormat(Qt.MarkdownText)
@@ -117,8 +117,6 @@ class Server(UI_Common):
 
             if platform.system().lower() == 'darwin':
                 self.wireguard = WireguardServer_macOS(config=self.config)
-
-                print(">>> CONFIRMED LATEST VERSION")
 
                 # Check if already running, set ui state
                 if self.wireguard.state:
@@ -255,9 +253,9 @@ _This action cannot be undone_""")
         self.setup_window.step_enable(['Create Remote User'])
 
         self.update_userview()
-        self.user_timer = QTimer(self)
-        self.user_timer.timeout.connect(self.update_userview)
-        self.user_timer.start(2000)
+        # self.user_timer = QTimer(self)
+        # self.user_timer.timeout.connect(self.update_userview)
+        # self.user_timer.start(60_000)
 
     def update_userview(self):
         """ Update userlist view
@@ -372,7 +370,8 @@ _This action cannot be undone_""")
 
             elif type(update) == list:
                 # Hey! That's a new authenticated user!
-                # update userlist with [PKEYU, UNAME, ASSIGN_IP]
+                # update userlist with [UNAME, PKEYU]
+                print("... Going to authenticated_user")
                 self.authenticated_user(update)
 
     def close_authentication(self):
@@ -402,11 +401,11 @@ _This action cannot be undone_""")
             if user['name'] == UNAME:
                 # UNAME unchanged
                 self.config['userlist'][n]['Pk'] = PKEYU
+                print(f">>> Added {UNAME} to userlist")
                 self.config.save()
                 break
 
         self.wireguard.update_config(self.config['userlist'])
-
         self.update_hba()
 
     def remove_user(self, username):
@@ -648,10 +647,9 @@ _This action cannot be undone_""")
                          quit_msg,
                          QMessageBox.Yes,
                          QMessageBox.No)
-
-        icon = QPixmap(link('ui/icons/wireguard.png'))
-        icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
-        reply.setIconPixmap(icon)
+        # icon = QPixmap(link('ui/icons/wireguard.png'))
+        # icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
+        # reply.setIconPixmap(icon)
 
         if reply == QtWidgets.QMessageBox.Yes:
             self.toggle_tunnel(False)
@@ -667,6 +665,7 @@ class ServerSetup(QWidget):
         self.setWindowTitle("Server Setup")
 
         self.lay = QGridLayout(self)
+        self.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Minimum)
 
         # self.setFrameShape(QtWidgets.QFrame.Panel)
         self.setObjectName("ServerSetup")

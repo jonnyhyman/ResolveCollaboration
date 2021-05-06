@@ -40,7 +40,7 @@ async def handle_authentication(reader, writer, QUEUE,
 
             QUEUE.put(f"... Authentication of {user['name']} complete!")
             QUEUE.put([user['name'], PKEYU])
-            print("Authentication complete, on to Wireguard reconfig")
+            print("... Authentication complete, on to Wireguard reconfig")
             break
 
         except InvalidToken as e:

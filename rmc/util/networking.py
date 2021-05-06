@@ -2,8 +2,14 @@ from subprocess import Popen, PIPE
 import platform
 
 def ping_many_macos(request, errors=False):
+    """ Ping many ips """
 
-    commands = [f"ping -i 1 -t 5 -c 2 {ip}" for ip in request.values()]
+    # every `interval` seconds, launch `count` pings, abort if returns take longer than `timeout` seconds
+    interval = .25 # can be float
+    timeout = 3 # must be int
+    count = 3
+
+    commands = [f"ping -i {interval} -t {timeout} -c {count} {ip}" for ip in request.values()]
 
     # Check if running, return if so
 
@@ -26,7 +32,7 @@ def parse_ping_macos(ping):
 
     value = "-- ms"
 
-    if ping is None or 'Request timeout' in ping:
+    if ping is None or '100.0% packet loss' in ping:
         return value
 
     blob = ping.split('\n')[-2] # "line after ping statistics"
@@ -40,6 +46,7 @@ def parse_ping_macos(ping):
     return value
 
 def get_pings_macos(request):
+    """ Get the returns of pinging many ips """
 
     for i, p in enumerate(request['procs']):
 
