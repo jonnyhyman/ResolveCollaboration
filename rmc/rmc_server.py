@@ -521,6 +521,11 @@ _This action cannot be undone_""")
 
                 hba_file = crs.fetchall()[0][0]
 
+                if not Path(hba_file).exists():
+                    # This database connection is not on the server machine
+                    print(f"... hba file {hba_file} for database {ui_db.db_details['name']} doesn't exist!")
+                    continue
+
                 hba += f"""# Added by RMCS at {datetime.datetime.utcnow()}\n"""
 
                 db_name = ui_db.db_details['name']
@@ -531,7 +536,14 @@ _This action cannot be undone_""")
 
         if hba_file and connection:
             # Snag the last hba_file and connection from the for loop
-            #  to actuall execute the file saving etc...
+            #  to actually execute the file saving etc...
+
+            # This fails if the last database listed is not on the server machine
+
+            if not Path(hba_file).exists():
+                # This database connection is not on the server machine
+                print(f"... hba file {hba_file} for database {ui_db.db_details['name']} doesn't exist!")
+                return
 
             # Backup
             backup_file = Path(hba_file).parent / Path("pg_hba_rmcsbackup.conf")

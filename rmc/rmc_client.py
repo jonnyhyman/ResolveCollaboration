@@ -15,6 +15,7 @@ import sys
 import datetime
 from multiprocessing import Process, Queue
 import multiprocessing
+import platform
 
 import webbrowser
 import os
@@ -249,7 +250,12 @@ def ConnectToTunnel(client):
 - Open the .conf file you saved
 - Activate"""
 
-    installed = Path("/Applications/WireGuard.app").exists()
+    if platform.system().lower() == 'darwin':
+        installed = Path("/Applications/WireGuard.app").exists()
+    elif platform.system().lower() == 'windows':
+        installed = Path("C:/Program Files/WireGuard/wireguard.exe").exists()
+    else:
+        return
 
     if not installed:
         openmaybe = "Wireguard is not installed. Do you want to install it?"
@@ -272,10 +278,25 @@ def ConnectToTunnel(client):
     open = (msg.clickedButton() == open_yes)
 
     if installed and open:
-        os.system("open /Applications/WireGuard.app")
+
+        if platform.system().lower() == 'darwin':
+            launcher = ("open /Applications/WireGuard.app")
+
+        elif platform.system().lower() == 'windows':
+            launcher = ('start "" "C:/Program Files/WireGuard/wireguard.exe"')
+
+        try:
+            os.system(launcher)
+        except Exception as e:
+            UI_Error(self, "Wireguard failed to launch", f"Exception: {e}")
 
     elif not installed and open:
-        app = ("""https://apps.apple.com/us/app/wireguard/id1451685025?mt=12""")
+
+        if platform.system().lower() == 'darwin':
+            app = ("""https://apps.apple.com/us/app/wireguard/id1451685025?mt=12""")
+        elif platform.system().lower() == 'windows':
+            app = ("""https://www.wireguard.com/install/""")
+
         webbrowser.open(app, new=2)
 
 # ----------------------- AUTHENTICATION PROMPTS AND FLOWS

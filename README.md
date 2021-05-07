@@ -1,57 +1,37 @@
 <img src=
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true"
-alt="drawing" width="75"/>
-# Resolve Collaboration
+alt="drawing" width="75"/> <h> Resolve Mission Control </h>
+
 This project makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-12%20at%2011.55.11%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 ## Features
-- Provides secure authentication for creating WireGuard Tunnels for over-the-internet collaboration
-- Allows you to check connection status before launching Resolve
-- Gives a status list of projects, and who is editing them
+- Authentication and control of Wireguard Tunnel for over-the-internet collaboration
+- Check connection status to remote databases before launching Resolve
+- 
 
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/ResolveCollabFlow@4x.png?raw=true"
-alt="drawing" width="1000"/>
-
-## Build Packages:
+## Client
+- These are the builds for 
 | Platform | Support | Link |
 |:----------:|:----------:|:---------------:|
-| **macOS**  | Tested on Catalina 10.15.7 | [Download](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.0.1/macOS-Resolve.Collaboration-v0.0.1.zip) |
-| **Windows** | Run from source ||
-| **Linux** | Any help appreciated! ||
+| **macOS**  | Tested on Catalina 10.15.7 | [Download]() |
+| **Windows** | Only client is supported ||
 
-**Known Issues:**
-- All Platforms:
-  - The app does not modify `pg_hba.conf` to allow access from authorized IPs. For now, follow the [instructions in this comment](https://github.com/jonnyhyman/ResolveCollaboration/issues/1#issuecomment-822850533)
-  - In the Wireguard configuration for clients, change `AllowedIPs = 0.0.0.0/0` to `AllowedIPs = 9.0.0.0/24`
-- macOS 
-  - the app bounces in the dock, disappears, and then reappears after ~30sec. [This is a known issue](https://github.com/jonnyhyman/ResolveCollaboration/issues/2)
-  - macOS cannot be used as a server without using the command line [because of reasons outlined (and solved) here](https://barrowclift.me/post/wireguard-server-on-macos)
-
-## Status: *Alpha*
-This project is in development, I've only tested on the following configuration:
-- Windows running Resolve 17's Project Server (PostgreSQL) and the Wireguard Server
-- macOS clients on Resolve 17
-
-## Roadmap (help wanted!)
-
-Client and Server
-- Match the visual style to Resolve with Qt stylesheets for `QPushButton`, `QTableView`, `QDialog`, and `QWindow`
-- Keep login details stored securely for database connections
-- Move authentication port to same port as WireGuard so only one port forward needed for TCP+UDP
-- Link in to Dropbox API and Media Mappings to notify (and enumerate) which Project files are not synced yet (download and upload)
-- Move the top-row buttons to a menu-bar context menu
-
-Server 
-- Host/control the WireGuard client from within the ResolveCollaboration codebase
-- Status updates of connection speed/ping through the VPN and to Project Server for all clients
-- Secure the Server password and user database (currently just a .csv file)
+## Server
+- Can only be run from source!
+- macOS requires:
+    - `brew install wireguard-tools`
 
 ## Dependencies
+
 Running from source requires following python packages:
-- `pip install PyQt5 cryptography pandas psycopg2-binary wgnlpy`
+- Install all in one: `pip install PyQt5==5.15.2 cryptography psycopg2-binary`
+- Install individually:
+   - `pip install PyQt5==5.15.2`
+   - `pip install cryptography`
+   - `pip install psycopg2-binary`
 
 ## Setup Example
 
@@ -59,109 +39,6 @@ Running from source requires following python packages:
 - There are at least two sides to collaboration!
 - Call one the "Server" and one "Client", assuming the Server is where the shared Resolve Database is stored
 - You can distinguish if we're talking about Client or Server in this example by noting the OS. The server was on Windows and the client was on macOS
-
-#### Walkthrough
-Note that this walkthrough was made when the GUI wasn't visually complete. But the  terminology and process is exactly the same
-
-First, launch the app on both Server and client. If you're running a packaged app, just open it. If you're running from python, run: `python collab/resolve_collab.py`
-
-On the server, switch from Client context to Server context by clicking **Client**
-
-<img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.07%20AM.png?raw=true"
-alt="drawing" width="250"/>
-
-Create a password for the authentication server, or type in a password previously created. Optionally, supply the Public Key of the Wireguard interface of the server if one already exists. **Leave Public Key blank if there is no Wireguard server configuration yet.**
-
-<img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.30.31%20AM.png?raw=true"
-alt="drawing" width="250"/>
-
-If you left Public Key blank, save the configuration file containing the server's private key and interface information
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.32.40%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-
-Click **New Team Member** to create a new user on the authentication server. Give this user a username and an assigned IP, which must be on the appropriate subnet *(default is 9.0.0.0/24)* and cannot match any other previously assigned IP
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.34.32%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-On client side, click **Make New Connection**. `Server IP` will be the `network IP` of the Server's host network if connecting from another network, or the `local IP` of the hosting machine if connecting from the same network. `Username` **must** be ***exactly*** the username string created on the Server side. This username is used to encrypt the traffic to the server. `Server Password` **must** be ***exactly*** the server password created on the Server side. This password is used to decrypt traffic coming back from the server.
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2012.12.59%20PM.png?raw=true"
-alt="drawing" width="500"/>
-
-Once the client has done entered this prompt, click **Authenticate** to launch the Authentication server
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.35.18%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-If authentication was successful, you will see the following message on the client
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.36.48%20AM.png?raw=true"
-alt="drawing" width="250"/>
-
-If authentication was successful, you will see the following message on the server
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.37.14%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-Next, save the new authenticated connection to the Server `.conf` file we created earlier (or some other Wireguard server configuration file)
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.37.32%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-Likewise, save the Wireguard client configuration somewhere
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.37.54%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-On the client side, open up the Wireguard app [available for download here on all platforms here](https://www.Wireguard.com/install/) and click **Import tunnel(s) from file** and open the client configuration file you just created.
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.40.51%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-On the server side, open up the Wireguard app [available for download here on all platforms here](https://www.Wireguard.com/install/) and click **Import tunnel(s) from file** and open the server configuration file you just created.
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.42.51%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-For a Windows server, to give clients access your internet connection, you must modify the internet adapter you're connected to the internet with. For me, that's `Ethernet 2`
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.44.27%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-Go to the Sharing tab, check both boxes, and select the Wireguard server you created as the Home network connection
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.45.51%20AM.png?raw=true"
-alt="drawing" width="250"/>
-
-Now, fire up the Wireguard server!
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.43.25%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-And fire up the Wireguard client! *(Note that it might look like its connected even if its not)*
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%209.46.27%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-If the connection was *actually* successful, the server will see a connected peer with a handshake
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.14.07%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-Once connected to the Wireguard VPN, the client can click **Reconnect** to connect to the Resolve database and populate the tables
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.14.27%20AM.png?raw=true"
-alt="drawing" width="250"/>
-
-And that's it! **Fire up Resolve and connect to the Project Server along with your colleagues! Chat features, and bin locking should work**
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-03%20at%2010.51.56%20AM.png?raw=true"
-alt="drawing" width="500"/>
 
 # Contributing
 - I welcome *anyone* to contribute to this project, regardless of skill level - and I'll try to be prompt about pull requests.

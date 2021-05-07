@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from pathlib import Path
 import pickle
 import psycopg2
+import psycopg2.extras
 from ipaddress import ip_address, ip_network
 
 from util.networking import ping_many, get_pings
@@ -238,6 +239,10 @@ class UI_User(QFrame):
         self.lay = QVBoxLayout(self)
         users.lay.addWidget(self)
 
+        # reference back to main ui class
+        self.ui_main = users.parent().parent()
+        self.user_details = user
+
         scaled = lambda i: i.scaledToWidth(100, Qt.SmoothTransformation)
         self.icon = QLabel()
         if user['name'] == 'Server':
@@ -267,8 +272,10 @@ class UI_User(QFrame):
                                             color: #848484;
                                         }""")
 
-            ui_main = users.parent().parent()
-            self.remove.clicked.connect(lambda: ui_main.remove_user(user['name']))
+
+            self.remove.clicked.connect(
+                lambda: self.ui_main.remove_user(user['name'])
+            )
 
         self.name = QLabel("__"+user['name']+"__")
         self.name.setTextFormat(Qt.MarkdownText)
@@ -279,6 +286,10 @@ class UI_User(QFrame):
         self.ip = QLabel(f"`{user['ip']}`")
         self.ip.setTextFormat(Qt.MarkdownText)
 
+        self.proj = QLabel("")
+        self.proj.setTextFormat(Qt.MarkdownText)
+        self.proj.setText(self.get_project(user))
+
         if user['name'] != "Server":
             self.lay.addWidget(self.remove, alignment=Qt.AlignCenter)
 
@@ -286,6 +297,7 @@ class UI_User(QFrame):
         self.lay.addWidget(self.name, alignment=Qt.AlignCenter)
         self.lay.addWidget(self.ip, alignment=Qt.AlignCenter)
         self.lay.addWidget(self.ping, alignment=Qt.AlignCenter)
+        self.lay.addWidget(self.proj, alignment=Qt.AlignCenter)
 
     def set_ping(self, ping):
 
@@ -303,6 +315,82 @@ class UI_User(QFrame):
 
         else:
             self.icon.setPixmap(self.icon_conn)
+
+        # while we're at it...
+        self.proj.setText(self.get_project(self.user_details))
+
+    def get_project(self, user):
+        """ Determine what project this user is in, if at all! """
+
+        # Get connection from UI
+        ui_db = self.ui_main.dbses.selected(fail_queitly=True)
+
+        if ui_db == None:
+            # if there is no database selected
+            return ""
+
+        if ui_db.connection == None:
+            return ""
+
+        connection = ui_db.connection
+
+        sysid_columns = ['SysId','Name','LastSeen','ClientAddr','UserDefinedClientName']
+        sql = f'''SELECT "{'","'.join(sysid_columns)}" FROM public."Sm2SysIdEntry" '''
+
+        crs = connection.cursor(cursor_factory = psycopg2.extras.NamedTupleCursor)
+        crs.execute(sql)
+        sysids = crs.fetchall()
+
+        project_columns = ['ProjectName', 'IsLiveCollaborationEnabled', 'SysIds', 'SM_Project_id']
+        sql = f'''SELECT "{'","'.join(project_columns)}" FROM public."SM_Project" '''
+
+        crs = connection.cursor(cursor_factory = psycopg2.extras.NamedTupleCursor)
+        crs.execute(sql)
+        projects = crs.fetchall()
+
+        if len(sysids) == 0:
+            # if there are no users in database this won't work...
+            return
+
+        user_ip = user['ip']
+
+        if user['name'] == 'Server':
+            # remap to home address if looking at server user
+            #  because resolve reports the home address, not first_ip
+            user_ip = '127.0.0.1'
+
+        # get sysid of user with user_ip
+        for select in sysids:
+
+            if user_ip == select.ClientAddr:
+                # carry to after the loop
+                user_sysid = select.SysId
+                break
+
+        else:
+            # print(f">>> User with ip {user_ip} was not found in Resolve database")
+            return ""
+
+        for project in projects:
+
+            if project.SysIds != '':
+                # Someone's in there!
+                user_ids = project.SysIds.split(',')
+
+                # Map to user
+
+                for sysid in user_ids:
+
+                    if user_sysid == sysid:
+
+                        # print(f">>> {user['name']} is in {project.ProjectName}")
+
+                        formatted = f"Working on\n__{project.ProjectName}__"
+
+                        return formatted
+
+        # Not found in any project
+        return ""
 
 
 class UI_Users(QFrame):
@@ -339,7 +427,7 @@ class UI_Users(QFrame):
             # If just loaded up
             self.ping_timer = QTimer(self)
             self.ping_timer.timeout.connect(self.ping_users)
-            self.ping_timer.start(1000)
+            self.ping_timer.start(4000)
 
     def ping_users(self, only_set = False):
         """ Ping users in the userview, and update from last pings
@@ -357,6 +445,7 @@ class UI_Users(QFrame):
 
             # Go get new ones
             self.pings = ping_many(self.get_ips())
+            # print('...', self.pings)
 
     def get_ips(self):
         ips = {}
@@ -551,7 +640,7 @@ class UI_Databases(QFrame):
         return ui_db.connection
 
     def select(self, this_db, fail_queitly=False):
-        """ Select this db!
+        """ Select this db! (called from button click on a database)
             - this_db is a dict containing database login details
         """
 
@@ -561,15 +650,22 @@ class UI_Databases(QFrame):
             else:
                 ui_db.disconnect()
 
-    def export_selected(self):
-
+    def selected(self, fail_queitly=False):
+        """ Returns which database is currently selected. Error if none """
         for db_name, ui_db in self.ui_dbses.items():
 
             if ui_db.select.isChecked():
-                ui_db.export()
-                break
+                return ui_db
         else:
-            UI_Error(self, "Export error", "Please select a database to export")
+            if fail_queitly:
+                return None
+            else:
+                UI_Error(self, "Selection error", "Please select a database")
+
+
+    def export_selected(self):
+        """ Initiate database connection export of the selected database """
+        self.selected().export()
 
 
 class DatabaseAuth(UI_Dialog):

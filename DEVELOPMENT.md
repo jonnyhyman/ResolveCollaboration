@@ -27,23 +27,23 @@ Client:
 - ✔ Wireguard configuration management
     -  ~~✔ Option A: Copy and paste into Wireguard app~~
     -  ✔ Option B: Save .conf file
-        -  small walkthrough
+        -  ✔ small walkthrough
 
 - Userlist
-    -  Request userlist from Server
-    -  ✔ Update userlist on timer
-    -  Update whose online
-        -  Whose online: Ping on timer
+    -  ~~Request userlist from Server~~
+    -  ✔ Update pings on timer
+    -  ~~Update whose online~~
+        -  ~~Whose online: Ping on timer~~
 
 Server:
 - ✔ Authentication to Client
     -  ✔ Async TCP server in the background with polling for output/updates
         -  ✔ Terminate on close
     -  ✔ Save user details to userlist
-    -  Clients can request userlist
+    -  ~~Clients can request userlist~~
     
 - Userlist
-    -  Serve userlist to Clients
+    -  ~~Serve userlist to Clients~~
     -  ✔ Update userlist on timer
         -  ✔ Whose online: Ping on timer
     
@@ -58,11 +58,10 @@ Server:
 ---
 
 ## Icing on the cake
-
 - Configuration reset option common
 
 Server:
-- Pinging of users
+- ✔ Pinging of users
 - Extra details about projects
-- PostgreSQL database user creation and management see `postgres_management.ipynb`
-- Dropbox sync page / Media management in general
+- PostgreSQL database user creation and management see `tests/postgres_management.ipynb`
+- Dropbox sync page / Media management in general / IPFS-based media storage?
