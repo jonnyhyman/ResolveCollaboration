@@ -23,7 +23,7 @@ def ping_many_macos(request, errors=False):
         else:
             stderr = None
 
-        request['procs'] += [Popen(cmd, stdout=PIPE, stderr=stderr, shell=True)]
+        request['procs'] += [Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)]
 
     return request
 
@@ -49,7 +49,7 @@ def ping_many_windows(request, errors=False):
         else:
             stderr = None
 
-        request['procs'] += [Popen(cmd, stdout=PIPE, stderr=stderr, shell=True)]
+        request['procs'] += [Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)]
 
     return request
 

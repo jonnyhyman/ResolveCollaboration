@@ -4,64 +4,18 @@ _(many things here may be in code TODOs or not)_
 
 ---
 
-## Minimum release
-_Assume both macOS and Windows support for all of the below:_
-
-
 Common:
-- DB list
-    - ✔ Removable
-    - ~~Duplicates~~
-  
-- Project list
-    - Simple
-        - Project name
-        - Live Collaboration: "On", "Off"
-        - Users in project
-
+- Time-based salt in the encryption of packets
+    
 Client:
-- ✔ Authentication to Server
-    -  ✔ Async TCP client in the background with polling for output/updates
-        -  ✔ Terminate on cancel/crash
-
-- ✔ Wireguard configuration management
-    -  ~~✔ Option A: Copy and paste into Wireguard app~~
-    -  ✔ Option B: Save .conf file
-        -  ✔ small walkthrough
-
-- Userlist
-    -  ~~Request userlist from Server~~
-    -  ✔ Update pings on timer
-    -  ~~Update whose online~~
-        -  ~~Whose online: Ping on timer~~
-
+- Configuration reset option on client
+        
 Server:
-- ✔ Authentication to Client
-    -  ✔ Async TCP server in the background with polling for output/updates
-        -  ✔ Terminate on close
-    -  ✔ Save user details to userlist
-    -  ~~Clients can request userlist~~
-    
-- Userlist
-    -  ~~Serve userlist to Clients~~
-    -  ✔ Update userlist on timer
-        -  ✔ Whose online: Ping on timer
-    
+- Admin features in an executable without `sudo .app`
 - Wireguard management
     - Create config with post-up and post-down commands
-        -  ✔ macOS
-        -  Windows
+        -  __Windows__
         
-- Database management
-    - ✔ Updating hba_conf
-    
----
+- PostgreSQL user and database creation ... see `tests/postgres_management.ipynb`
 
-## Icing on the cake
-- Configuration reset option common
-
-Server:
-- ✔ Pinging of users
-- Extra details about projects
-- PostgreSQL database user creation and management see `tests/postgres_management.ipynb`
-- Dropbox sync page / Media management in general / IPFS-based media storage?
+- IPFS-based media storage

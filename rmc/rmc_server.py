@@ -5,12 +5,13 @@ from auth.server import tcp_server
 from auth.crypt import passkey, Fernet
 
 #
-from util.default_hba import default_hba
+from util import postgres, default_hba
 
-from wireguard import WireguardServer_macOS
+from wireguard import WireguardServer_macOS, WireguardServer_Windows
 
 # 3rd party package imports
 import psycopg2
+from elevate import elevate
 
 # built-in imports
 from pathlib import Path
@@ -117,6 +118,13 @@ class Server(UI_Common):
 
             if platform.system().lower() == 'darwin':
                 self.wireguard = WireguardServer_macOS(config=self.config)
+
+                # Check if already running, set ui state
+                if self.wireguard.state:
+                    self.toggle_tunnel(True)
+
+            elif platform.system().lower() == 'windows':
+                self.wireguard = WireguardServer_Windows(config=self.config)
 
                 # Check if already running, set ui state
                 if self.wireguard.state:
@@ -446,8 +454,6 @@ _This action cannot be undone_""")
     def database_restart(self):
         """ Restart PostgreSQL """
 
-        do = False
-
         quit_msg = "Restart the PostgreSQL Server?"
         reply = QMessageBox.question(self, 'Restart PostgreSQL',
                          quit_msg,
@@ -457,45 +463,30 @@ _This action cannot be undone_""")
         if reply != QtWidgets.QMessageBox.Yes:
             return
 
-        with psycopg2.connect(
-                    # the `postgres` db comes standard issue
-                    database="postgres",
-                    user="postgres",
-                    password="DaVinci",
-                    host="127.0.0.1",
-                    port="5432",
-                    connect_timeout=3,
-                  ) as connection:
+        if platform.system().lower() == 'darwin':
+            out = postgres.postgres_restart_macos()
 
-            crs = connection.cursor()
+        elif platform.system().lower() == 'windows':
+            out = postgres.postgres_restart_windows()
 
-            # Find where postgres is installed (datadir and pg_ctl in bin)
-            crs.execute("select name, setting from pg_settings where name = 'data_directory';")
-            data_dir = Path(crs.fetchall()[0][1])
-            pg_ctl = data_dir.absolute().parent / 'bin/pg_ctl'
+        print(f">>> postgres restarted : {out}")
 
-        # Change directory into PostgreSQL and then restart with pg_ctl
-        command = ( f'''cd {data_dir.absolute().parent}; '''
-                    f'''sudo su postgres -c "{pg_ctl} restart -D {data_dir}"''')
-        print("... restarting postgres >>>", command)
-
-        out = subprocess.check_output(command,
-                                        shell=True,
-                                        stderr=subprocess.STDOUT)
-
-        print(f">>> postgres restarted with exit message:")
-        print(str(out,'utf-8'))
-        #
-        # if out:
-        #     self.message.setText("_Updated Host-Based Authentication_")
-        # else:
-        #     self.message.setText("__Host-Based Authentication failed to update__")
+        if out:
+            self.message.setText("_PostgreSQL Server Restarted_")
+        else:
+            self.message.setText("__Failed to restart PostgreSQL Server__")
 
     def update_hba(self):
         """ Update the access permissions for all databases in list """
 
+        if platform.system().lower() == 'darwin':
+            default_hba_text = default_hba.default_hba_macos
+
+        elif platform.system().lower() == 'windows':
+            default_hba_text = default_hba.default_hba_windows
+
         # Default hba_conf from util.default_hba
-        hba = str(default_hba)
+        hba = str(default_hba_text)
         hba_file = None
 
         for db, ui_db in self.dbses.ui_dbses.items():
@@ -610,8 +601,19 @@ _This action cannot be undone_""")
                         "Must be run as root\n>>> sudo python rmc_server.py")
                 return
 
+        elif platform.system().lower() == 'windows':
+
+            try:
+                self.wireguard = WireguardServer_Windows(force_reset = True,
+                                                        port = self.wg_port,
+                                                        subnet = self.subnet)
+
+            except PermissionError:
+                UI_Error(self, "Wireguard Configuration Failed",
+                        "Must be run as root\n>>> sudo python rmc_server.py")
+                return
         else:
-            raise(NotImplementedError("Only macOS Wireguard Server supported"))
+            raise(NotImplementedError("Only macOS/Windows Wireguard Server supported"))
 
         # first ip in the subnet is always the server
         first_ip = next(ip_network(self.subnet).hosts())
@@ -658,7 +660,8 @@ _This action cannot be undone_""")
         reply = QMessageBox.question(self, 'Close Tunnel?',
                          quit_msg,
                          QMessageBox.Yes,
-                         QMessageBox.No)
+                         QMessageBox.No,
+                         defaultButton = QMessageBox.No)
         # icon = QPixmap(link('ui/icons/wireguard.png'))
         # icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
         # reply.setIconPixmap(icon)
@@ -893,8 +896,18 @@ class TunnelConfig(UI_Dialog):
         return self.WG_PORT.text()
 
 if __name__ == '__main__':
+
+    # Request root/admin
+    elevate(show_console=False)
+
     app = QApplication(sys.argv)
+    app.setApplicationName("Resolve Mission Control Server")
+
+    icon = QIcon(link('ui/icons/icon.ico'))
+    app.setWindowIcon(icon)
+
     w = Server(app)
     w.show()
+    w.setWindowIcon(icon)
 
     sys.exit(app.exec_())

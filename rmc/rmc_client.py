@@ -19,6 +19,7 @@ import platform
 
 import webbrowser
 import os
+import ctypes
 
 """
 Client app:
@@ -435,9 +436,19 @@ if __name__ == '__main__':
     multiprocessing.freeze_support()
 
     app = QApplication(sys.argv)
+    app.setApplicationName("Resolve Mission Control Client")
+
+    icon = QIcon(link('ui/icons/icon.ico'))
+    app.setWindowIcon(icon)
 
     w = Client(app)
     w.show()
+
+    if platform.system().lower() == 'windows':
+        myappid = u'rmc.rmc.rmcc' # arbitrary string
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
+    w.setWindowIcon(icon)
 
     if len(sys.argv) > 1:
         if sys.argv[1] == 'reset':

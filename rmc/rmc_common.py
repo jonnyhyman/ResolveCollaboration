@@ -246,7 +246,9 @@ class UI_User(QFrame):
         scaled = lambda i: i.scaledToWidth(100, Qt.SmoothTransformation)
         self.icon = QLabel()
         if user['name'] == 'Server':
-            self.icon_disc = scaled(QPixmap(link('ui/icons/database_disconnected.png')))
+            # The Server cannot be disconnected, because... you're running it.
+            #  so both images are of a connected database
+            self.icon_disc = scaled(QPixmap(link('ui/icons/database.png')))
             self.icon_conn = scaled(QPixmap(link('ui/icons/database.png')))
         else:
             self.icon_disc = scaled(QPixmap(link('ui/icons/user_disconnected.png')))
@@ -337,8 +339,21 @@ class UI_User(QFrame):
         sysid_columns = ['SysId','Name','LastSeen','ClientAddr','UserDefinedClientName']
         sql = f'''SELECT "{'","'.join(sysid_columns)}" FROM public."Sm2SysIdEntry" '''
 
-        crs = connection.cursor(cursor_factory = psycopg2.extras.NamedTupleCursor)
-        crs.execute(sql)
+        try:
+            crs = connection.cursor(cursor_factory = psycopg2.extras.NamedTupleCursor)
+            crs.execute(sql) # this command can cause the exceptions
+
+        except psycopg2.OperationalError as e:
+            # Can occur if restart happens
+            print(f">>> Error getting projects, database restarted? : {e}")
+            return
+
+        except psycopg2.InterfaceError as e:
+            # Can happen after a restart, connection has been severed
+            # try to reconnect:
+            success = ui_db.connect()
+            return # just quit, we'll check next time timer calls this
+
         sysids = crs.fetchall()
 
         project_columns = ['ProjectName', 'IsLiveCollaborationEnabled', 'SysIds', 'SM_Project_id']
@@ -347,6 +362,7 @@ class UI_User(QFrame):
         crs = connection.cursor(cursor_factory = psycopg2.extras.NamedTupleCursor)
         crs.execute(sql)
         projects = crs.fetchall()
+
 
         if len(sysids) == 0:
             # if there are no users in database this won't work...
@@ -373,7 +389,7 @@ class UI_User(QFrame):
 
         for project in projects:
 
-            if project.SysIds != '':
+            if project.SysIds is not None:
                 # Someone's in there!
                 user_ids = project.SysIds.split(',')
 

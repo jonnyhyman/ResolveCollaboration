@@ -1,46 +1,70 @@
 <img src=
 "https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true"
-alt="drawing" width="75"/> <h> Resolve Mission Control </h>
+alt="drawing" width="75"/> 
 
-This project makes the **DaVinci Resolve 17** Live Collaboration features better, and makes them work over the internet in a secure manner.
+# Welcome to Mission Control
+
+Work on **DaVinci Resolve 17** Live Collaboration projects __from anywhere on Earth__
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-12%20at%2011.55.11%20AM.png?raw=true"
 alt="drawing" width="500"/>
 
 ## Features
-- Authentication and control of Wireguard Tunnel for over-the-internet collaboration
-- Check connection status to remote databases before launching Resolve
-- 
+- Secure user authentication
+- Wireguard secure tunnel configuration management and control
+- Resolve PostgreSQL Database Management, __replacing__ _the overly-limited DaVinci Resolve Project Manager_
 
-## Client
-- These are the builds for 
-| Platform | Support | Link |
-|:----------:|:----------:|:---------------:|
-| **macOS**  | Tested on Catalina 10.15.7 | [Download]() |
-| **Windows** | Only client is supported ||
+## Downloads
+- Resolve Mission Control Client [**macOS** .app](), [**Windows** .exe]()
 
-## Server
-- Can only be run from source!
-- macOS requires:
+## Quickstart
+- __Client on macOS/Windows__
+    - Open the app
+    - Authenticate to the Resolve Mission Control Server, save the configuration file
+    - Install the [Wireguard app]()
+    - Import Tunnel configuration file into Wireguard
+    - Export Database Connection file somewhere
+    - Drag/drop or double-click connection file to connect  
+    - __Edit collaboratively!__
+
+---
+- __Server on macOS__
+    - Install [Homebrew]()
     - `brew install wireguard-tools`
+    - `brew install python3` (if you don't already have Python 3)
+    - `pip install PyQt5==5.15.2 cryptography psycopg2-binary elevate`
+    - Run `python rmc_server.py`
+    - Use setup
+- __Server on Windows__
+    - Install [Python 3.9]()
+    - `pip install PyQt5==5.15.2 cryptography psycopg2-binary pywin32 elevate`
+    - Install [Wireguard app]()
+    - Run `python rmc_server.py`
 
-## Dependencies
+4. Server setup
 
-Running from source requires following python packages:
-- Install all in one: `pip install PyQt5==5.15.2 cryptography psycopg2-binary`
-- Install individually:
-   - `pip install PyQt5==5.15.2`
-   - `pip install cryptography`
-   - `pip install psycopg2-binary`
+5. Tell user to launch the client app
+(image)
 
-## Setup Example
+6. Activate authentication server
 
-#### Context
-- There are at least two sides to collaboration!
-- Call one the "Server" and one "Client", assuming the Server is where the shared Resolve Database is stored
-- You can distinguish if we're talking about Client or Server in this example by noting the OS. The server was on Windows and the client was on macOS
+7. Activate Wireguard tunnel
 
-# Contributing
-- I welcome *anyone* to contribute to this project, regardless of skill level - and I'll try to be prompt about pull requests.
-- Alpha testers are welcome to post their issues in the `Issues` tab on this repo so that things can be improved/expanded.
-- If anyone has issues with the security model, please do post an Issue. This is my first project dealing with secure connections, and I think that it's pretty solid but I'm not entirely sure.
+8. Edit to your heart's desire
+
+## Plans for a paid version
+I'm trying to gauge interest for a paid version of this app, which would be far more powerful 
+
+- Client app:
+    - High performance, written in native languages (Go?) (C++ Windows/Linux, Swift macOS)
+    - 2Fac Auth, Tunnel (embedded), Extended Userlist (IP/Loc, Machine ID, Productivity)
+    - Cloud Sync Info (Dropbox, Drive, etc…)
+    - Private Interplanetary File System (IPFS)
+- Server app:
+    - High performance, written in native languages (Go?) (C++ Windows/Linux, Swift macOS)
+    - 2Fac Auth, Tunnel (embedded), Extended Userlist (IP/Loc, Machine ID, Productivity)
+    - Cloud Sync Info (Dropbox, Drive, etc…)
+    - Seamless support for linked-star tunnels or maybe meshes?
+    - More user information and security features (IP lock, Machine ID lock, etc…)
+- Admin app:
+    - Control unlimited number of servers from afar through a powerful web app

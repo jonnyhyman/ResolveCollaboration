@@ -1,4 +1,10 @@
-default_hba = """
+default_hba_windows = """
+# TYPE    DATABASE    USER    ADDRESS    METHOD
+host    all    all    127.0.0.1/32    md5
+host    all    all    ::1/128    md5
+"""
+
+default_hba_macos = """
 # PostgreSQL Client Authentication Configuration File
 # ===================================================
 #
