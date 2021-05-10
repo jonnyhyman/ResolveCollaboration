@@ -47,3 +47,28 @@ Collaboration messages capture the following data:
 - Playhead position updates `@< {SysId} `
 
 The largest known packet was ~160 bytes, but the true buffer size is still somewhat unknown
+
+# Project Settings (Media Mappings)
+In the user preferences file `config.dat` (encoded utf-8 plain text), found in `~/Library/Preferences/Blackmagic Design/DaVinci Resolve`, there is a group of settings for media mappings. (these are set in "System" preferences of Resolve)
+
+```
+Site.1.FS.Count = 2
+
+Site.1.FS.1.Type = IOFileSys
+Site.1.FS.1.Root = /Users/jonnyhyman/Human Creative Dropbox/Jonny Hyman/Veritasium/Hilbert
+Site.1.FS.1.MappedRoot = /Users/derekpro/Veritasium Dropbox/Current Videos/Hilbert
+Site.1.FS.1.MacDIO = 1
+Site.1.FS.1.BrightClip = 0
+
+Site.1.FS.2.Type = IOFileSys
+Site.1.FS.2.Root = /Volumes
+Site.1.FS.2.MappedRoot = 
+Site.1.FS.2.MacDIO = 1
+Site.1.FS.2.BrightClip = 0
+```
+
+Root is where a directory is locally
+MappedRoot is where it is mapped to in Media Pool files!
+This is a great place to troubleshoot media mapping issues, and perhaps we can modify it on the fly (requiring Resolve restart though) to make media mappings work seamlessly.
+
+MacDIO corresponds to the "Direct I/O Switch"
