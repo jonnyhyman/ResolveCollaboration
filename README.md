@@ -29,7 +29,7 @@ There are mandatory installation instructions, [please see this page](https://gi
     - Save the configuration file somewhere you remember
     - Install [Wireguard](https://www.wireguard.com/install/)
     - Import the configuration file into Wireguard
-    - Click the "⇄" button to connect to a Resolve database
+    - Click the ⇄ button to connect to a Resolve database
     - Use _Export Database Connection_ to save the database connection
     - Double-click the exported file or drag-drop into Resolve to connect  
     - __Have fun!__
