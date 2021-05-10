@@ -55,7 +55,12 @@ There are mandatory installation instructions, [please see this page](https://gi
         - `pip install PyQt5==5.15.2 cryptography psycopg2-binary pywin32 elevate`
         - `python rmc_server.py` 
         
-The GUI will automatically demand root/admin privileges using the `elevate` package.
+The GUI will automatically demand root/admin privileges using the `elevate` package, to allow:
+- Control of Wireguard
+- Opening of Firewall (macOS)
+- Reconfiguring of Network Sharing settings (Windows)
+- Read/write of configuration files in protected directories
+- PostgreSQL Server restarts (macOS via pg_ctl, Windows via the postgres service)
 
 ---
 
