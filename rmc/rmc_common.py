@@ -3,6 +3,7 @@ from pathlib import Path
 import pickle
 import psycopg2
 import psycopg2.extras
+import psycopg2.errors
 from ipaddress import ip_address, ip_network
 
 from util.networking import ping_many, get_pings
@@ -213,6 +214,10 @@ class UI_Common(QWidget):
     def database_remove(self, ui_db_to_remove):
         """ Remove a created database connection """
 
+        # disconnect
+        if ui_db_to_remove.connection:
+            ui_db_to_remove.connection.close()
+
         # remove it from the layout list
         self.dbses.lay.removeWidget(ui_db_to_remove)
 
@@ -354,15 +359,28 @@ class UI_User(QFrame):
             success = ui_db.connect()
             return # just quit, we'll check next time timer calls this
 
+        except psycopg2.errors.UndefinedTable as e:
+            # If a new database has been created but never used, some
+            # important tables like Sm2SysIdEntry won't exist yet!
+            print(f"... database error for {ui_db.db_details['name']} : {e}")
+            crs.close()
+            return
+
+        except psycopg2.errors.InFailedSqlTransaction as e:
+            print(f"... database error for {ui_db.db_details['name']} : {e}")
+            crs.close()
+            return
+
         sysids = crs.fetchall()
 
         project_columns = ['ProjectName', 'IsLiveCollaborationEnabled', 'SysIds', 'SM_Project_id']
         sql = f'''SELECT "{'","'.join(project_columns)}" FROM public."SM_Project" '''
 
+        crs.close()
         crs = connection.cursor(cursor_factory = psycopg2.extras.NamedTupleCursor)
         crs.execute(sql)
         projects = crs.fetchall()
-
+        crs.close()
 
         if len(sysids) == 0:
             # if there are no users in database this won't work...

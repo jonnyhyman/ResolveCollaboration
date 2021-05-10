@@ -10,6 +10,7 @@ from util import postgres, default_hba
 from wireguard import WireguardServer_macOS, WireguardServer_Windows
 
 # 3rd party package imports
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2
 from elevate import elevate
 
@@ -53,18 +54,23 @@ class Server(UI_Common):
         self.b_dbadd = QPushButton("+")
         self.b_dbcon = QPushButton("⇄")
         self.b_dbcyc = QPushButton("⟳")
-        self.b_dbdel = QPushButton("-")
-        # self.b_setup = QPushButton("Setup")
+        self.b_dbdel = QPushButton("×")
         self.b_tunn = QPushButton("Activate Tunnel")
         self.b_auth = QPushButton("Activate Authentication")
 
+        # The ordering here reflects the lifecycle of a database
+        # (create, connect, restart, delete)
+        self.b_dbadd.setToolTip("Create Resolve Database")
         self.b_dbcon.setToolTip("Connect to Resolve Database")
         self.b_dbcyc.setToolTip("Restart PostgreSQL Server")
+        self.b_dbdel.setToolTip("Delete Resolve Database (FOREVER)")
 
-        for b in [self.b_dbcon, self.b_dbcyc]: # TODO: Expand to add and del
+
+        for b in [self.b_dbadd, self.b_dbcon, self.b_dbcyc, self.b_dbdel]:
             self.p_LU.lay.addWidget(b)
             b.setObjectName("LU_buttons")
             b.setStyleSheet(f"""QPushButton#LU_buttons {{
+                                        font-size: 15px;
                                         color: #848484;
                                         background: transparent;
                                         }}
@@ -92,8 +98,10 @@ class Server(UI_Common):
         self.message.setTextFormat(Qt.MarkdownText)
         self.p_RB.lay.addWidget(self.message, alignment=Qt.AlignBottom)
 
+        self.b_dbadd.clicked.connect(self.database_create)
         self.b_dbcon.clicked.connect(self.database_connect)
         self.b_dbcyc.clicked.connect(self.database_restart)
+        self.b_dbdel.clicked.connect(self.database_delete)
         self.b_tunn.clicked.connect(self.toggle_tunnel)
         self.b_auth.clicked.connect(self.toggle_auth)
 
@@ -440,9 +448,78 @@ _This action cannot be undone_""")
 
         # No need to remove from userview, it will automatically next refresh
 
-    def create_database(self):
-        """ Create a new PostgreSQL database based on Resolve template """
-        # # TODO:
+    def database_create(self):
+        """ Create a new PostgreSQL database """
+
+        # low risk secrets:
+        connection = psycopg2.connect(
+                                          host    =  '127.0.0.1',
+                                          user    =  'postgres',
+                                          database=  'postgres',
+                                          password=  "DaVinci",
+                                          port    = "5432",
+                                          connect_timeout=3,
+                                        )
+        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = connection.cursor()
+
+        cursor.execute("SELECT rolname FROM pg_roles")
+        roles = [item for sublist in cursor.fetchall() for item in sublist]
+
+        # PROMPT: New user/pass or existing user? and new database name?
+        config = DatabaseConfig(roles, self)
+        output = config.exec_()
+
+        if not output:
+            return
+
+        username, password, databasename = config.get_output()
+
+        if username == "" or databasename == "" or password == "":
+            UI_Error(self, "Input Error", "Username and database name cannot be blank")
+
+            cursor.close()
+            connection.close()
+
+            self.database_create()
+            return
+
+        if username not in roles:
+            psql = f"""
+            CREATE ROLE {username}
+            CREATEDB
+            LOGIN
+            SUPERUSER
+            PASSWORD '{password}';"""
+
+            try:
+                crs.execute(psql)
+                connection.commit()
+            except Exception as e:
+                UI_Error(self, 'PostgreSQL Error', e)
+                return
+
+        try:
+            cursor.execute(f"CREATE DATABASE {databasename} WITH OWNER='{username}'")
+            connection.commit()
+        except psycopg2.errors.DuplicateDatabase as e:
+            UI_Error(self, 'Already Exists', e)
+            cursor.close()
+            connection.close()
+            return
+
+        UI_Successful(self, "Database Created!",
+            "Upon first connect to the database, Resolve will fill it with"
+            " the standard tables and entries")
+
+        db = {
+                    'host' : "127.0.0.1",
+                    'name' : databasename,
+                    'user' : username,
+                    'pass' : password
+        }
+
+        self.dbses.add_database(db, select=False)
 
     def database_connect(self):
 
@@ -475,6 +552,77 @@ _This action cannot be undone_""")
             self.message.setText("_PostgreSQL Server Restarted_")
         else:
             self.message.setText("__Failed to restart PostgreSQL Server__")
+
+    def database_delete(self):
+        """ Delete a postgres database permanently """
+
+        ui_db = self.dbses.selected()
+        db_name = ui_db.db_details['name']
+
+        quit_msg = f"Are you sure you want to delete database {db_name}?"
+        reply = QMessageBox.question(self, 'Delete Database?',
+                         quit_msg,
+                         QMessageBox.Yes,
+                         QMessageBox.No)
+
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
+
+        quit_msg = f"Seriously, this will delete everything in {db_name}. Continue?"
+        reply = QMessageBox.question(self, 'Delete Database???',
+                         quit_msg,
+                         QMessageBox.Yes,
+                         QMessageBox.No)
+
+        if reply != QtWidgets.QMessageBox.Yes:
+            return
+
+        getpass = ServerPassword(self)
+        output = getpass.exec_()
+
+        if not getpass:
+            return
+
+        if self.config['auth']['authkey'] != passkey(getpass.get_output()).decode():
+            UI_Error(self, "Incorrect password", "Please try again")
+            return
+
+        # Now backend
+        if db_name in ['postgres', 'resolve']:
+            # Don't allow those to be deleted
+            UI_Error(self, "Cannot remove", "Databases `postgres` and `resolve`"
+                                            "cannot be deleted")
+            return
+
+        # Remove UI first
+        self.database_remove(ui_db)
+
+        # Then backend
+        # low risk secrets:
+        connection = psycopg2.connect(
+                                          host    =  '127.0.0.1',
+                                          user    =  'postgres',
+                                          database=  'postgres',
+                                          password=  "DaVinci",
+                                          port    = "5432",
+                                          connect_timeout=3,
+                                        )
+        connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        cursor = connection.cursor()
+
+        # terminate user connections
+        cursor.execute(f"""SELECT pg_terminate_backend (pid)
+        FROM pg_stat_activity
+        WHERE pg_stat_activity.datname = '{db_name}';""")
+
+        cursor.execute(f"DROP DATABASE {db_name}")
+        connection.commit()
+
+        cursor.close()
+        connection.close()
+
+        UI_Successful(self, f"Database {db_name} Deleted!",
+                            "I sure hope that was intentional!")
 
     def update_hba(self):
         """ Update the access permissions for all databases in list """
@@ -656,12 +804,11 @@ _This action cannot be undone_""")
         """
         self.close_authentication()
 
-        quit_msg = "Do you want to shutdown Wireguard?"
         reply = QMessageBox.question(self, 'Close Tunnel?',
-                         quit_msg,
+                         "Do you want to shutdown Wireguard?",
                          QMessageBox.Yes,
-                         QMessageBox.No,
-                         defaultButton = QMessageBox.No)
+                         QMessageBox.No)
+
         # icon = QPixmap(link('ui/icons/wireguard.png'))
         # icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
         # reply.setIconPixmap(icon)
@@ -868,6 +1015,32 @@ class ServerConfig(UI_Dialog):
     def get_output(self):
         return self.S_PWD.text(), self.S_PORT.text(), self.SUBNET.text()
 
+
+class ServerPassword(UI_Dialog):
+    """ Form for the server password and other details """
+
+    def __init__(self, parent = None):
+        super(ServerPassword, self).__init__(parent)
+
+        layout = QVBoxLayout(self)
+
+        self.S_PWD = QtWidgets.QLineEdit()
+        self.S_PWD.setPlaceholderText("Server Password")
+        self.S_PWD.setEchoMode(QtWidgets.QLineEdit.Password)
+        layout.addWidget(self.S_PWD)
+
+        # OK and Cancel buttons
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout.addWidget(buttons)
+
+    def get_output(self):
+        return self.S_PWD.text()
+
 class TunnelConfig(UI_Dialog):
     """ Form for the Wireguard details """
 
@@ -894,6 +1067,50 @@ class TunnelConfig(UI_Dialog):
 
     def get_output(self):
         return self.WG_PORT.text()
+
+
+class DatabaseConfig(UI_Dialog):
+    """ Form for creating a database """
+
+    def __init__(self, roles, parent = None):
+        super(DatabaseConfig, self).__init__(parent)
+
+        layout = QVBoxLayout(self)
+
+        info = QLabel(f"Enter the name of an existing user or, "
+                        "to create a new login role, enter a unique name")
+        layout.addWidget(info)
+
+        self.NAME = QtWidgets.QLineEdit()
+        self.NAME.setPlaceholderText(f"Database Username: {', '.join(roles)} or a new username")
+        layout.addWidget(self.NAME)
+
+        info = QLabel("\nCreate password for a new role. (Leave blank for existing role)")
+        layout.addWidget(info)
+
+        self.PASS = QtWidgets.QLineEdit()
+        self.PASS.setPlaceholderText("Database Password")
+        self.PASS.setEchoMode(QtWidgets.QLineEdit.Password)
+        layout.addWidget(self.PASS)
+
+        info = QLabel("\nWhat should the database be called?")
+        layout.addWidget(info)
+
+        self.DB_NAME = QtWidgets.QLineEdit()
+        self.DB_NAME.setPlaceholderText("Database Name")
+        layout.addWidget(self.DB_NAME)
+
+        # OK and Cancel buttons
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout.addWidget(buttons)
+
+    def get_output(self):
+        return self.NAME.text(), self.PASS.text(), self.DB_NAME.text()
 
 if __name__ == '__main__':
 
