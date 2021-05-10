@@ -35,7 +35,7 @@ There are mandatory installation instructions, [please see this page](https://gi
     - __Have fun!__
 
 ---
-#### Check out the [Server guide]() for more details
+#### Check out the [Server guide](https://github.com/jonnyhyman/ResolveCollaboration/wiki/Server-guide) for more details
 - __Server on macOS__
     - Download Resolve Mission Control Server source code
     - Install [Homebrew](https://brew.sh/)
