@@ -1,14 +1,9 @@
-<img src=
-"https://github.com/jonnyhyman/ResolveCollaboration/blob/main/collab/icon.png?raw=true"
-alt="drawing" width="75"/> 
+# Welcome to Resolve Mission Control
+Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
 
-# Welcome to Mission Control
-Work on **DaVinci Resolve 17** Live Collaboration projects __collaboratively, from anywhere__
-
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-12%20at%2011.55.11%20AM.png?raw=true"
-alt="drawing" width="500"/>
-
-A little explanation of the motivation for the app and what it does
+|Client (somewhere far away) | Server (home base) |
+|:---|:---|
+|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Image%205-9-21%20at%207.00%20PM.jpg?raw=true" alt="Client" width="800"/>|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-05-09%20at%206.40.03%20PM.png?raw=true" alt="Server" width="800"/>|
 
 ## Features
 - Secure __over the internet__ video editing collaboration for Resolve
@@ -17,13 +12,13 @@ A little explanation of the motivation for the app and what it does
 - Resolve database management, __replacing__ _the overly-limited DaVinci Resolve Project Server_
 
 ## Downloads
-__Client__
+__Client__ Beta 0.1.0
 
 | Platform | Download     |
 |:---------|-------------:|
 |macOS 10.15+ | [**macOS** .app]() |
 |Windows 10 |[**Windows** .exe]() |
-|Linux | [Looking for beta testers]() |
+|Linux | Looking for beta testers |
 
 ---
 ## Quickstart
