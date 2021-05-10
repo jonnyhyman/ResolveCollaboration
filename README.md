@@ -3,7 +3,6 @@
 alt="drawing" width="75"/> 
 
 # Welcome to Mission Control
-
 Work on **DaVinci Resolve 17** Live Collaboration projects __collaboratively, from anywhere__
 
 <img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-04-12%20at%2011.55.11%20AM.png?raw=true"
