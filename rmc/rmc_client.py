@@ -44,6 +44,7 @@ class Client(UI_Common):
         self.b_dbcon.setToolTip("Connect to Resolve Database")
         self.b_dbcon.setObjectName("b_dbcon")
         self.b_dbcon.setStyleSheet("""QPushButton#b_dbcon {
+                                    font-size: 17px;
                                     color: #848484;
                                     background: transparent;
                                     }
