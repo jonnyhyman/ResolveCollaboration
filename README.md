@@ -36,21 +36,27 @@ There are mandatory installation instructions, [please see this page](https://gi
 
 ---
 #### Check out the [Server guide](https://github.com/jonnyhyman/ResolveCollaboration/wiki/Server-guide) for more details
+
+- Clone this repo's source code:
+    - Option 1) `git clone https://github.com/jonnyhyman/ResolveCollaboration.git`
+    - Option 2) [Download and unzip this](https://github.com/jonnyhyman/ResolveCollaboration/archive/refs/heads/main.zip)
+
 - __Server on macOS__
-    - Download Resolve Mission Control Server source code
     - Install [Homebrew](https://brew.sh/)
     - Run in Terminal:
         - `brew install wireguard-tools`
         - `brew install python3` (if you don't already have Python 3)
         - `pip install PyQt5==5.15.2 cryptography psycopg2-binary elevate`
         - `python rmc_server.py`
-- __Server on Windows__
-    - Download Resolve Mission Control Server source code
+- __Server on Windows__    
     - Install [Python 3.9](https://www.python.org/downloads/)
     - Install [Wireguard for Windows](https://www.wireguard.com/install/)
     - Run in Powershell/Command Prompt:
         - `pip install PyQt5==5.15.2 cryptography psycopg2-binary pywin32 elevate`
-        - `python rmc_server.py`
+        - `python rmc_server.py` 
+        
+The GUI will automatically demand root/admin privileges using the `elevate` package.
+
 ---
 
 ## Plans for a fully-featured paid version
