@@ -11,13 +11,14 @@ Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from a
 - Secure user authentication
 - Resolve database management, __replacing__ _the overly-limited DaVinci Resolve Project Server_
 
-## Downloads
-__Client__ Beta 0.1.0
+## Download the Client
+
+There are mandatory installation instructions, [please see this page](https://github.com/jonnyhyman/ResolveCollaboration/releases/tag/0.1.0)
 
 | Platform | Download     |
 |:---------|-------------:|
-|macOS 10.15+ | [**macOS** .app]() |
-|Windows 10 |[**Windows** .exe]() |
+|macOS 10.15+ | [**macOS** .app](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.0/macOS-Resolve.Mission.Control-v0.1.0.zip) |
+|Windows 10 |[**Windows** .exe](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.0/Win10-Resolve.Mission.Control-v0.1.0.zip) |
 |Linux | Looking for beta testers |
 
 ---
