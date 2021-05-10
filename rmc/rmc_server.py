@@ -493,7 +493,7 @@ _This action cannot be undone_""")
             PASSWORD '{password}';"""
 
             try:
-                crs.execute(psql)
+                cursor.execute(psql)
                 connection.commit()
             except Exception as e:
                 UI_Error(self, 'PostgreSQL Error', e)
