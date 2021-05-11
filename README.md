@@ -24,7 +24,7 @@ There are mandatory installation instructions, [please see this page](https://gi
 ---
 ## Quickstart
 - __Client__
-    - Open the app
+    - Open the app, [bypassing some OS preventions](https://github.com/jonnyhyman/ResolveCollaboration/releases/tag/0.1.0)
     - Authenticate to the Resolve Mission Control Server
     - Save the configuration file somewhere you remember
     - Install [Wireguard](https://www.wireguard.com/install/)
