@@ -35,7 +35,7 @@ There are mandatory installation instructions, [please see this page](https://gi
     - __Have fun!__
 
 ---
-#### Check out the [Server guide](https://github.com/jonnyhyman/ResolveCollaboration/wiki/Server-guide) for more details
+> For more details on whats below, read the [Server guide](https://github.com/jonnyhyman/ResolveCollaboration/wiki/Server-guide)
 
 - Clone this repo's source code:
     - Option 1) `git clone https://github.com/jonnyhyman/ResolveCollaboration.git`
