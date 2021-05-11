@@ -82,4 +82,4 @@ I'm trying to gauge interest for a paid version of this app, which would be far 
 - Admin app:
     - Control unlimited number of servers from afar through a powerful web app
 
-__If the above sounds enticing to you, please go [upvote this post!]()__
+__If the above sounds enticing to you, please go [upvote this post!](https://github.com/jonnyhyman/ResolveCollaboration/issues/4)__
