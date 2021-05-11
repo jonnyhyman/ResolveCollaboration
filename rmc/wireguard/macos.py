@@ -12,7 +12,7 @@ class WireguardServer_macOS:
     def __init__(self, force_reset=False, config=None,
                         port=51820, subnet = "9.0.0.0/24"):
 
-        if config is not None:
+        if config is not None and force_reset==False:
             self.subnet = config['auth']['subnet']
             self.port = config['wireguard']['port']
             self.pk = config['wireguard']['pk']
@@ -149,7 +149,10 @@ AllowedIPs = {user['ip']}/32
 
     @property
     def state(self):
-        return self.peers() != {}
+        proc = Popen(['wg','show'], stdout=PIPE, stderr=PIPE)
+        wg, err = proc.communicate()
+        wg = str(wg,'utf-8')
+        return wg != ""
 
     def up(self):
 

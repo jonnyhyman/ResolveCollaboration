@@ -521,6 +521,7 @@ class UI_Database(QFrame):
 
         self.remove = QPushButton("×")
         self.remove.setObjectName("b_remove")
+        self.remove.setToolTip(f"Remove connection to {db_details['name']}")
         self.remove.setSizePolicy(QSizePolicy.Minimum,
                                     QSizePolicy.Minimum)
         self.remove.setStyleSheet("""QPushButton#b_remove {
