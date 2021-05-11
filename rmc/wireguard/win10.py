@@ -11,7 +11,7 @@ class WireguardServer_Windows:
     def __init__(self, force_reset=False, config=None,
                         port=51820, subnet = "9.0.0.0/24"):
 
-        if config is not None:
+        if config is not None and force_reset==False:
             self.subnet = config['auth']['subnet']
             self.port = config['wireguard']['port']
             self.pk = config['wireguard']['pk']
@@ -34,9 +34,13 @@ class WireguardServer_Windows:
         with open("C:/Windows/System32/WindowsPowerShell/v1.0/Modules/wireguard/cleanwmi.vbs", 'w') as vbs:
             vbs.write(cleanwmi_vbs)
 
+        print("... Wrote system scripts")
+
         # -------- Configure
 
         self.pk, self.Pk = self.pk_Pk_pair()
+
+        print("... Generated new keys")
 
     def run_return(self, cmd):
         """ Run a command, capture output, don't crash"""
@@ -93,17 +97,22 @@ AllowedIPs = {user['ip']}/32
         else:
             do_up = False
 
-        with open("C:/Wireguard/Wireguard_server.conf", 'w') as conf:
+        with open("C:/Wireguard/Wireguard_rmcs.conf", 'w') as conf:
             conf.write(server_config)
+
+        print("... Saved configuration")
 
         if do_up:
             self.up()
 
     @property
     def state(self):
-        return self.peers() != {}
+        proc = Popen(['wg','show'], stdout=PIPE, stderr=PIPE)
+        wg, err = proc.communicate()
+        wg = str(wg,'utf-8')
+        return wg != ""
 
-    def up(self):
+    def up(self, debug=True):
 
         # already up?
         if self.state:
@@ -112,41 +121,47 @@ AllowedIPs = {user['ip']}/32
             return
         else:
 
-            cmd = '''"C:/Program Files/WireGuard/wireguard.exe" /installtunnelservice "C:/Wireguard/Wireguard_server.conf"'''
-            up = self.run_return(cmd)
-            print("... Installed configuration", str(up,'utf-8')=='')
+            cmd = '''"C:/Program Files/WireGuard/wireguard.exe" /installtunnelservice "C:/Wireguard/Wireguard_rmcs.conf"'''
+            out = str(self.run_return(cmd))
+            print(f"... Installed configuration", out=="b''")
+            if debug: print(out)#; print(str(out,'utf-8'))
 
             # Set the network profile to be in Private category
-            cmd = ('''powershell $NetworkProfile = Get-NetConnectionProfile -InterfaceAlias "Wireguard_server"; '''
+            cmd = ('''powershell $NetworkProfile = Get-NetConnectionProfile -InterfaceAlias "Wireguard_rmcs"; '''
                     '''$NetworkProfile.NetworkCategory = 'Private'; '''
                     '''Set-NetConnectionProfile -InputObject $NetworkProfile''')
 
-            net = self.run_return(cmd) # empty if successful
-            print("... Set profile to Private", str(net,'utf-8')=='')
+            out = str(self.run_return(cmd)) # empty if successful
+            print(f"... Set profile to Private", out=="b''")
+            if debug: print(out)#; print(str(out,'utf-8'))
 
             #Enable NAT
-            cmd = '''powershell Set-NetConnectionSharing "Wireguard_server" $true'''
-            nat = self.run_return(cmd) # text DONE if successful
-            print("... Enabled connection sharing", "DONE" in str(nat,'utf-8'))
+            cmd = '''powershell Set-NetConnectionSharing "Wireguard_rmcs" $true'''
+            out = str(self.run_return(cmd)) # text DONE if successful
+            print(f"... Enabled connection sharing", "DONE" in out)
+            if debug: print(out)#; print(str(out,'utf-8'))
 
     def show(self):
         show = subprocess.check_output("wg show", shell=True, stderr=subprocess.STDOUT)
-        print(str(output,'utf-8')) # returns empty if
+        show = str(show, 'utf-8', errors='ignore')
+        print(show)
 
-    def down(self):
+    def down(self, debug=True):
         if not self.state:
             print('... Wireguard is already down')
             return
 
         # Disable NAT
-        cmd = '''powershell Set-NetConnectionSharing "Wireguard_server" $false'''
-        nat = self.run_return(cmd) # empty if successful
-        print("... Disabled connection sharing", "DONE" in str(nat,'utf-8'))
+        cmd = '''powershell Set-NetConnectionSharing "Wireguard_rmcs" $false'''
+        out = str(self.run_return(cmd)) # empty if successful
+        print("... Disabled connection sharing", "DONE" in out)
+        if debug: print(out)#; print(str(out,'utf-8'))
 
         # Uninstall tunnel service
-        cmd = '''"C:/Program Files/WireGuard/wireguard.exe" /uninstalltunnelservice Wireguard_server'''
-        down = self.run_return(cmd)
-        print("... Uninstalled configuration", str(down,'utf-8')=='')
+        cmd = '''"C:/Program Files/WireGuard/wireguard.exe" /uninstalltunnelservice Wireguard_rmcs'''
+        out = str(self.run_return(cmd))
+        print("... Uninstalled configuration", out=="b''")
+        if debug: print(out)#; print(str(out,'utf-8'))
 
     def pk_Pk_pair(self):
         pk = keys.PrivateKey.generate()
@@ -189,7 +204,7 @@ cleanwmi_vbs = """'Clean up WMI Entries so we can make a new one
 'https://github.com/billchaison/Windows-Trix
 Wscript.Echo ">>> WMI Cleanup"
 
-set WMI = GetObject("WinMgmts:\root\Microsoft\HomeNet")
+set WMI = GetObject("WinMgmts:/root/Microsoft/HomeNet")
 set objs1 = WMI.ExecQuery("SELECT * FROM HNet_ConnectionProperties WHERE IsIcsPrivate = TRUE")
 for each obj in objs1
    obj.IsIcsPrivate = FALSE
@@ -250,7 +265,10 @@ enablesharing_powershell = """Function Set-NetConnectionSharing
 
         # Clean up WMI
         # https://github.com/billchaison/Windows-Trix
-        & cscript /nologo "C:/Windows/System32/WindowsPowerShell/v1.0/Modules/wireguard/cleanwmi.vbs"
+        if ($Enabled)
+        {
+            & cscript /nologo "C:/Windows/System32/WindowsPowerShell/v1.0/Modules/wireguard/cleanwmi.vbs"
+        }
 
         # Find connections
         $InternetConnection = Get-NetRoute | ? DestinationPrefix -eq '0.0.0.0/0' | Get-NetIPInterface | Where ConnectionState -eq 'Connected'
@@ -271,6 +289,7 @@ enablesharing_powershell = """Function Set-NetConnectionSharing
         {
             $publicConfig.DisableSharing()
             $privateConfig.DisableSharing()
+            & cscript /nologo "C:/Windows/System32/WindowsPowerShell/v1.0/Modules/wireguard/cleanwmi.vbs"
         }
 
         Write-Output ">>> DONE"

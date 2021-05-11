@@ -423,6 +423,7 @@ _This action cannot be undone_""")
 
         self.wireguard.update_config(self.config['userlist'])
         self.update_hba()
+        self.update_userview()
 
     def remove_user(self, username):
         """ Remove remote user, update wireguard, update hba """
@@ -446,7 +447,7 @@ _This action cannot be undone_""")
         print("... Removed", username)
         self.message.setText(f"_Removed {username}_")
 
-        # No need to remove from userview, it will automatically next refresh
+        self.update_userview()
 
     def database_create(self):
         """ Create a new PostgreSQL database """
@@ -774,6 +775,8 @@ _This action cannot be undone_""")
         self.config['userlist'][0]['ip'] = first_ip
         self.config.save()
 
+        self.wireguard.update_config(self.config['userlist'])
+
         self.b_tunn.setEnabled(True)
         self.b_auth.setEnabled(True)
 
@@ -804,17 +807,18 @@ _This action cannot be undone_""")
         """
         self.close_authentication()
 
-        reply = QMessageBox.question(self, 'Close Tunnel?',
-                         "Do you want to shutdown Wireguard?",
-                         QMessageBox.Yes,
-                         QMessageBox.No)
+        if hasattr(self,'wireguard') and self.wireguard.state:
+            reply = QMessageBox.question(self, 'Close Tunnel?',
+                             "Do you want to shutdown Wireguard?",
+                             QMessageBox.Yes,
+                             QMessageBox.No)
 
-        # icon = QPixmap(link('ui/icons/wireguard.png'))
-        # icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
-        # reply.setIconPixmap(icon)
+            # icon = QPixmap(link('ui/icons/wireguard.png'))
+            # icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
+            # reply.setIconPixmap(icon)
 
-        if reply == QtWidgets.QMessageBox.Yes:
-            self.toggle_tunnel(False)
+            if reply == QtWidgets.QMessageBox.Yes:
+                self.toggle_tunnel(False)
 
         super().closeEvent(event)
 
