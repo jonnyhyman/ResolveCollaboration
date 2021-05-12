@@ -12,10 +12,5 @@ Client:
         
 Server:
 - Admin features in an executable without `sudo .app`
-- Wireguard management
-    - Create config with post-up and post-down commands
-        -  __Windows__
         
-- PostgreSQL user and database creation ... see `tests/postgres_management.ipynb`
-
-- IPFS-based media storage
+- IPFS-based peer-to-peer media storage?
