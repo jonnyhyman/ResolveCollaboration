@@ -671,7 +671,7 @@ _This action cannot be undone_""")
                 db_name = ui_db.db_details['name']
                 db_user = ui_db.db_details['user']
 
-                hba +="    ".join(['host', db_name, db_user, self.subnet, 'md5'])
+                hba +="    ".join(['host', db_name, db_user, str(self.subnet), 'md5'])
                 hba += '\n'
 
         if hba_file and connection:
