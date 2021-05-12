@@ -161,6 +161,9 @@ PersistentKeepalive = 25
                 self.config['userlist'][0]['Pk'] = PKEYS
                 self.config.save()
 
+                # new in 0.1.1
+                self.update_header()
+
                 # Save config to conf file
                 saveto = FileDialog(forOpen=False, fmt='conf',
                                     title="Save Wireguard Configuration File")
