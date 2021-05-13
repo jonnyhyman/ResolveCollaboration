@@ -35,6 +35,7 @@ There are mandatory installation instructions, [please see this page](https://gi
     - __Have fun!__
 
 ---
+- __Server__
 > For more details on what's below, read the [Server guide](https://github.com/jonnyhyman/ResolveCollaboration/wiki/Server-guide)
 
 - Clone this repo's source code:
