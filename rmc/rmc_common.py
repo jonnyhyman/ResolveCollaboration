@@ -473,7 +473,7 @@ class UI_Users(QFrame):
             self.ping_timer.timeout.connect(self.ping_users)
             self.ping_timer.start(4000)
 
-    def ping_users(self, only_set = False, debug=True):
+    def ping_users(self, only_set = False, debug=False):
         """ Ping users in the userview, and update from last pings
         """
 

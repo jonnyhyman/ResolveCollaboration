@@ -155,6 +155,9 @@ class Server(UI_Common):
             prompt_result = prompt.exec_()
             password, port, subnet = prompt.get_output()
 
+            if not prompt_result:
+                return
+
             if port == "":
                 port = self.auth_port
 
@@ -182,8 +185,6 @@ class Server(UI_Common):
                 UI_Error(self, "Invalid Password", "Must be longer than 0 characters")
                 self.config_server()
                 return
-
-
 
             if prompt_result and len(password) > 0:
 
