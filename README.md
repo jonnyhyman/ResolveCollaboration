@@ -41,7 +41,7 @@ There are mandatory installation instructions, [please see this page](https://gi
 - Clone this repo's source code:
     - Option 1) `git clone https://github.com/jonnyhyman/ResolveCollaboration.git`
     - Option 2) [Download and unzip this](https://github.com/jonnyhyman/ResolveCollaboration/archive/refs/heads/main.zip)
-    - Open a shell (Powershell/Terminal) and change directory to the rmc folder `cd /path/to/ResolveCollaboration/rmc`
+    - Open a shell (Powershell/Terminal) and change directory to the `rmc` folder `cd /path/to/ResolveCollaboration/rmc`
 
 - __Server on macOS__
     - Install [Homebrew](https://brew.sh/)
