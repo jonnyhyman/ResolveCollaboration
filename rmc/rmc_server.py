@@ -169,6 +169,8 @@ class Server(UI_Common):
                 self.config_server()
                 return
 
+            self.subnet = str(self.subnet)
+
             try:
                 port = int(port)
             except ValueError as e:
@@ -180,6 +182,8 @@ class Server(UI_Common):
                 UI_Error(self, "Invalid Password", "Must be longer than 0 characters")
                 self.config_server()
                 return
+
+
 
             if prompt_result and len(password) > 0:
 
@@ -671,7 +675,7 @@ _This action cannot be undone_""")
                 db_name = ui_db.db_details['name']
                 db_user = ui_db.db_details['user']
 
-                hba +="    ".join(['host', db_name, db_user, str(self.subnet), 'md5'])
+                hba +="    ".join(['host', db_name, db_user, self.subnet, 'md5'])
                 hba += '\n'
 
         if hba_file and connection:

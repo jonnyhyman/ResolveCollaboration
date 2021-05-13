@@ -41,6 +41,10 @@ QIcon = QtGui.QIcon
 # Pyinstaller pathfinding
 from pathlib import Path
 
+
+__version__ = "0.1.1"
+
+
 def link(relpath):
     bundle_dir = Path(__file__).parent
     absolute = str((Path.cwd() / bundle_dir / relpath).absolute())
@@ -371,6 +375,12 @@ class UI_User(QFrame):
             crs.close()
             return
 
+        except psycopg2.DatabaseError as e:
+            crs.close()
+            ui_db.disconnect()
+            UI_Error(self, "Database Error", e)
+            return
+
         sysids = crs.fetchall()
 
         project_columns = ['ProjectName', 'IsLiveCollaborationEnabled', 'SysIds', 'SM_Project_id']
@@ -463,7 +473,7 @@ class UI_Users(QFrame):
             self.ping_timer.timeout.connect(self.ping_users)
             self.ping_timer.start(4000)
 
-    def ping_users(self, only_set = False):
+    def ping_users(self, only_set = False, debug=True):
         """ Ping users in the userview, and update from last pings
         """
 
@@ -472,14 +482,14 @@ class UI_Users(QFrame):
             pings = get_pings(self.pings)
 
             # update userview
-            # print('... ...',pings['returns'])
+            if debug: print('<<<',pings['returns'])
             self.set_pings(pings)
 
         if not only_set:
 
             # Go get new ones
             self.pings = ping_many(self.get_ips())
-            # print('...', self.pings)
+            if debug: print('>>>', self.pings)
 
     def get_ips(self):
         ips = {}
@@ -839,7 +849,7 @@ class Config:
     """
 
     default = {
-                'version' : '0.0.2',
+                'version' : __version__,
                 'auth' : {},
                 'dbses': [],
                 'userlist':[{
