@@ -17,8 +17,8 @@ There are mandatory installation instructions, [please see this page](https://gi
 
 | Platform | Download     |
 |:---------|-------------:|
-|macOS 10.15+ | [**macOS** .app](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.0/macOS_Resolve.Mission.Control-v0.1.0-signed.zip) |
-|Windows 10 |[**Windows** .exe](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.0/Win10-Resolve.Mission.Control-v0.1.0.zip) |
+|macOS 10.15+ | [**macOS** .app](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.1/macOS-Resolve.Mission.Control-v0.1.1.zip) |
+|Windows 10 |[**Windows** .exe](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.1/Win10-Resolve.Mission.Control-v0.1.1.zip) |
 |Linux | Looking for beta testers |
 
 ---
