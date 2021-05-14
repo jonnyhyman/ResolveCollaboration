@@ -9,7 +9,6 @@ import psycopg2
 
 # built-in imports
 from pathlib import Path
-from ipaddress import ip_address, ip_network
 import sys
 
 import datetime
@@ -17,6 +16,7 @@ from multiprocessing import Process, Queue
 import multiprocessing
 import platform
 
+import validators
 import webbrowser
 import os
 import ctypes
@@ -98,10 +98,23 @@ class Client(UI_Common):
 
         if auth_result:
 
-            try:
-                ip_address(auth_request['S_IP'])
-            except ValueError as e:
-                UI_Error(self,"Invalid Server IP", str(e))
+            if bool(validators.ipv4(auth_request['S_IP'])):
+                ip_valid = True
+                print('... Valid ipv4')
+
+            elif bool(validators.ipv6(auth_request['S_IP'])):
+                ip_valid = True
+                print('... Valid ipv6')
+
+            elif bool(validators.domain(auth_request['S_IP'])):
+                ip_valid = True
+                print('... Valid domain')
+            else:
+                ip_valid = False
+
+            if not ip_valid:
+                UI_Error(self,"Invalid Server IP",
+                                "Must be IPv4, IPv6, or Domain")
                 self.auth_client()
                 return
 
