@@ -24,8 +24,10 @@ async def handle_authentication(reader, writer, QUEUE,
 
             if server_pass == PASS_CHECK:
                 QUEUE.put("Server password valid!")
+                print("... Server password valid!")
             else:
                 QUEUE.put('Server password invalid')
+                print("... Server password invalid!")
                 continue
 
             PKEYS = userlist[0]['Pk']
@@ -48,7 +50,7 @@ async def handle_authentication(reader, writer, QUEUE,
             print(f'... {user} did not decrypt message from {addr}')
             pass
     else:
-        QUEUE.put("Invalid request message (could be UNAME or SPASS)")
+        QUEUE.put("Invalid request message (Invalid username or server password)")
         writer.write("INVALID REQUEST".encode())
 
     writer.close()
