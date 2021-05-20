@@ -1,3 +1,5 @@
+<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/RMC.png?raw=true" alt="" width="800"/>
+
 # Welcome to Resolve Mission Control
 Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
 
