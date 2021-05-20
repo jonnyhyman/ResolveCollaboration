@@ -1,17 +1,16 @@
-<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/RMC.png?raw=true" alt="" width="800"/>
+<center><img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/RMC_crop.png?raw=true" alt="" width="800"/></center>
 
-# Welcome to Resolve Mission Control
-Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
-
-|Client (somewhere far away) | Server (home base) |
-|:---|:---|
-|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Image%205-9-21%20at%207.00%20PM.jpg?raw=true" alt="Client" width="800"/>|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-05-09%20at%206.40.03%20PM.png?raw=true" alt="Server" width="800"/>|
-
+#### Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
 ## Features
 - Secure __over the internet__ video editing collaboration for Resolve
 - [Wireguard](https://www.wireguard.com/) VPN tunnel setup, management and control
 - Secure user authentication
 - Resolve database management, __replacing__ _the overly-limited DaVinci Resolve Project Server_
+
+
+|Client (somewhere far away) | Server (home base) |
+|:---|:---|
+|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Image%205-9-21%20at%207.00%20PM.jpg?raw=true" alt="Client" width="800"/>|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-05-09%20at%206.40.03%20PM.png?raw=true" alt="Server" width="800"/>|
 
 ## Download the Client
 
