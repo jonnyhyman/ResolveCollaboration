@@ -1,4 +1,4 @@
-<center><img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/RMC_crop.png?raw=true" alt="" width="800"/></center>
+<center><img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/RMC_crop.png?raw=true" alt="" width="1000"/></center>
 
 #### Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
 ## Features
