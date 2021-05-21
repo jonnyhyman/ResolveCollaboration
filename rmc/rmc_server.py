@@ -119,6 +119,12 @@ class Server(UI_Common):
 
         # Tunnel configured? (Requires server to be configured)
         if 'wireguard' in self.config.config:
+
+            # Backwards compatibility, v0.1.2 onwards
+            if 'only' not in self.config['wireguard'].keys():
+                self.config['wireguard']['only'] = self.wg_only
+                self.config.save()
+
             self.b_auth.setEnabled(True)
             self.b_tunn.setEnabled(True)
             self.wg_port = self.config['wireguard']['port']
