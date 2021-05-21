@@ -347,8 +347,10 @@ _This action cannot be undone_""")
             self.update_userview()
 
         # Restart authentication server (send new userlist)
-        self.toggle_auth(False)
-        self.toggle_auth(True)
+        # if running:
+        if hasattr(self,'tcp_proc'):
+            self.toggle_auth(False)
+            self.toggle_auth(True)
 
     def toggle_auth(self, state):
         """ Toggle authentication server """
@@ -580,6 +582,10 @@ _This action cannot be undone_""")
         """ Delete a postgres database permanently """
 
         ui_db = self.dbses.selected()
+
+        if not ui_db:
+            return
+
         db_name = ui_db.db_details['name']
 
         quit_msg = f"Are you sure you want to delete database {db_name}?"
