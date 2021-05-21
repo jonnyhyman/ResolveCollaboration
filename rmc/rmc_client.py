@@ -11,10 +11,12 @@ import psycopg2
 from pathlib import Path
 import sys
 
-import datetime
 from multiprocessing import Process, Queue
 import multiprocessing
 import platform
+
+from datetime import datetime
+import time
 
 import validators
 import webbrowser
@@ -77,12 +79,8 @@ class Client(UI_Common):
             if self.config['auth']['client_username'] != "":
                 self.update_header()
 
-        update_function = lambda: self.users.update(self.config['userlist'])
-
-        update_function()
-        # self.user_timer = QTimer(self)
-        # self.user_timer.timeout.connect(update_function)
-        # self.user_timer.start(60_000)
+        self.update_userview = lambda: self.users.update(self.config['userlist'])
+        self.update_userview()
 
     def update_header(self):
         header  = f"""## {self.config['auth']['client_username']}\n"""
@@ -145,7 +143,14 @@ class Client(UI_Common):
             if auth_tcp.tcp_authentic:
 
                 # Create Wireguard tunnel config file
-                PKEYS, S_IP, IP_ASSIGNED, WG_PORT = auth_tcp.tcp_authentic
+                PKEYS, S_IP, IP_ASSIGNED, WG_PORT, WG_ONLY, SUBNET = auth_tcp.tcp_authentic
+
+                if WG_ONLY == "True":
+                    allowed_ips = SUBNET
+                else:
+                    allowed_ips = "0.0.0.0/0, ::/0" # all ipv4, all ipv6
+
+                # TODO: Add subnet to tcp autentic and
 
                 client_config = (f"""
 [Interface]
@@ -165,7 +170,7 @@ PublicKey = {PKEYS}
 # port here to match.
 Endpoint = {auth_request['S_IP']}:{WG_PORT}
 # Informs Wireguard to forward ALL traffic through the VPN.
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = {allowed_ips}
 # If you're be behind a NAT, this will keep the connection alive.
 PersistentKeepalive = 25
                 """)
@@ -174,8 +179,8 @@ PersistentKeepalive = 25
                 self.config['userlist'][0]['Pk'] = PKEYS
                 self.config.save()
 
-                # new in 0.1.1
                 self.update_header()
+                self.update_userview()
 
                 # Save config to conf file
                 saveto = FileDialog(forOpen=False, fmt='conf',
@@ -413,7 +418,14 @@ class ClientAuthTCP(UI_Dialog):
         MESSG = f"{SPASS.decode()},{Pk}"
 
         # Authentication request
-        encrypted = Fernet(passkey(UNAME)).encrypt(MESSG.encode())
+        # username + utc minute (time based salt)
+
+        # wait for next minute if we're literally in the last 1 second
+        if datetime.utcnow().second == 59:
+            time.sleep(1)
+
+        auth_key = passkey(UNAME + str(datetime.utcnow().minute))
+        encrypted = Fernet(auth_key).encrypt(MESSG.encode())
 
         self.tcp_queue = Queue()
         self.tcp_proc = Process(target = tcp_client,
@@ -440,7 +452,7 @@ class ClientAuthTCP(UI_Dialog):
 
         elif type(update) == list:
             # This marks the end of the request, a list of
-            # [PKEYS, SERVER_IP, IP_ASSIGNED, WG_PORT]
+            # [PKEY SERVER, SERVER_IP, etc...]
             self.tcp_authentic = update
 
     def closeEvent(self, event):
@@ -455,7 +467,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setApplicationName("Resolve Mission Control Client")
 
-    icon = QIcon(link('ui/icons/icon.ico'))
+    icon = QIcon(link('ui/icons/icon_v1.ico'))
     app.setWindowIcon(icon)
 
     w = Client(app)

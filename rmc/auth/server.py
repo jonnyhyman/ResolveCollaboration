@@ -1,15 +1,19 @@
 from auth.crypt import passkey, Fernet, InvalidToken
 import asyncio
 
+from datetime import datetime
+
 async def handle_authentication(reader, writer, QUEUE,
-                                                userlist, server_pass, wg_port):
+                    userlist, server_pass, wg_port, wg_only, subnet):
+
     auth_request = await reader.read(1024)
     fail_cause = "UNKNOWN ERROR"
 
     for user in userlist: # skip server
         # loop through usernames, see if one properly decrpyts message
         # hash key to decrypt message with:
-        key = str(passkey(user['name']), 'utf-8')
+
+        auth_key = passkey(user['name'] + str(datetime.utcnow().minute))
 
         try:
 
@@ -17,7 +21,7 @@ async def handle_authentication(reader, writer, QUEUE,
             # QUEUE.put(f">>> Received {message} from {addr}")
 
             # decrypt message
-            message = Fernet(key).decrypt(auth_request)
+            message = Fernet(auth_key).decrypt(auth_request)
             message = message.decode()
 
             PASS_CHECK, PKEYU = message.split(',')
@@ -33,9 +37,10 @@ async def handle_authentication(reader, writer, QUEUE,
             PKEYS = userlist[0]['Pk']
             SERVER_IP = userlist[0]['ip']
             ASSIGN_IP = user['ip']
-            WG_PORT = wg_port
 
-            auth_reply = f"{PKEYS},{SERVER_IP},{ASSIGN_IP},{WG_PORT}"
+            auth_reply = (f"{PKEYS},{SERVER_IP},{ASSIGN_IP},"
+                            f"{wg_port},{wg_only},{subnet}")
+
             auth_reply = Fernet(server_pass).encrypt(auth_reply.encode())
             writer.write(auth_reply)
             await writer.drain()
@@ -55,7 +60,7 @@ async def handle_authentication(reader, writer, QUEUE,
 
     writer.close()
 
-def tcp_server(QUEUE, S_IP, S_PORT, userlist, server_pass, wg_port):
+def tcp_server(S_IP, S_PORT, QUEUE, DETAILS):
     """ QUEUE: multiprocessing.Queue for output and updates
         when latest QUEUE item type is list, the request is complete!
     """
@@ -64,12 +69,7 @@ def tcp_server(QUEUE, S_IP, S_PORT, userlist, server_pass, wg_port):
     authentication = loop.create_future()
     asyncio.set_event_loop(loop)
 
-    handle_authentication_ = lambda r,w: handle_authentication(r,w,
-                                                            QUEUE,
-                                                            userlist,
-                                                            server_pass,
-                                                            wg_port
-                                                            )
+    handle_authentication_ = lambda r,w: handle_authentication(r,w,QUEUE,*DETAILS)
 
     coro = asyncio.start_server(handle_authentication_, S_IP, S_PORT, loop=loop)
 
@@ -77,7 +77,8 @@ def tcp_server(QUEUE, S_IP, S_PORT, userlist, server_pass, wg_port):
         async_server = loop.run_until_complete(coro)
     except OSError as e:
         # The port is already in use
-        QUEUE.put(e)
+        print(e)
+        QUEUE.put(str(e))
         return
 
     # Serve requests until Ctrl+C is pressed
