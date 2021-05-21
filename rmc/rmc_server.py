@@ -44,6 +44,7 @@ class Server(UI_Common):
     subnet = '9.0.0.0/24'
     auth_port = 4444
     wg_port = 51820
+    wg_only = True
 
     def __init__(self, app, parent=None):
         super().__init__(app, parent=parent)
@@ -121,6 +122,7 @@ class Server(UI_Common):
             self.b_auth.setEnabled(True)
             self.b_tunn.setEnabled(True)
             self.wg_port = self.config['wireguard']['port']
+            self.wg_only = self.config['wireguard']['only']
             self.setup_window.step_enable(['Port Forward',
                                            'Authenticate Remote User'])
 
@@ -344,6 +346,10 @@ _This action cannot be undone_""")
 
             self.update_userview()
 
+        # Restart authentication server (send new userlist)
+        self.toggle_auth(False)
+        self.toggle_auth(True)
+
     def toggle_auth(self, state):
         """ Toggle authentication server """
         if state:
@@ -366,17 +372,21 @@ _This action cannot be undone_""")
 
         self.tcp_queue = Queue()
         self.tcp_proc = Process(target = tcp_server,
-                                args = (self.tcp_queue, C_IP, S_PORT,
-                                        self.config['userlist'],
-                                        self.config['auth']['authkey'],
-                                        self.wg_port,))
+                                args = (C_IP, S_PORT, self.tcp_queue,
+                                            [self.config['userlist'],
+                                             self.config['auth']['authkey'],
+                                             self.wg_port,
+                                             self.wg_only,
+                                             self.subnet],
+                                        )
+                                )
 
         self.tcp_timer = QTimer(self)
         self.tcp_timer.timeout.connect(self.update_authentication)
         self.tcp_timer.start(500)
         self.tcp_proc.start()
 
-        self.message.setText("Authentication server opened")
+        self.message.setText("Authentication server opening...")
 
     def update_authentication(self):
         """ Check for updates on the authentication server """
@@ -397,6 +407,7 @@ _This action cannot be undone_""")
 
     def close_authentication(self):
         """ Close the authentication server """
+
         if hasattr(self, 'tcp_proc'):
             # Running? Stop.
             self.tcp_timer.stop()
@@ -406,7 +417,9 @@ _This action cannot be undone_""")
 
             self.message.setText("Authentication server closed")
 
-            # Update HBA here in case if failed somewhere else
+            del self.tcp_proc
+
+            # Update HBA here in case it failed somewhere else
             self.update_hba()
 
     def authenticated_user(self, new_user):
@@ -453,6 +466,10 @@ _This action cannot be undone_""")
         self.message.setText(f"_Removed {username}_")
 
         self.update_userview()
+
+        # Restart authentication server (send new userlist)
+        self.toggle_auth(False)
+        self.toggle_auth(True)
 
     def database_create(self):
         """ Create a new PostgreSQL database """
@@ -727,7 +744,7 @@ _This action cannot be undone_""")
 
         prompt = TunnelConfig(self)
         prompt_result = prompt.exec_()
-        PORT = prompt.get_output()
+        PORT, ONLY = prompt.get_output()
 
         if not prompt_result:
             return
@@ -735,13 +752,17 @@ _This action cannot be undone_""")
         if PORT == "":
             PORT = self.wg_port
 
+        # Port verify
+
         try:
             self.wg_port = int(PORT)
 
         except ValueError as e:
-            UI_Error(self, "Invalid Assignment Port", "Was port as an integer?")
+            UI_Error(self, "Invalid Assignment Port", "Was port an integer?")
             self.config_tunnel()
             return
+
+        self.wg_only = ONLY
 
         if platform.system().lower() == 'darwin':
 
@@ -774,6 +795,7 @@ _This action cannot be undone_""")
 
         self.config['wireguard'] = {}
         self.config['wireguard']['port'] = self.wg_port
+        self.config['wireguard']['only'] = self.wg_only
         self.config['wireguard']['pk'] = self.wireguard.pk
         self.config['wireguard']['Pk'] = self.wireguard.Pk
         self.config['userlist'][0]['Pk'] = self.wireguard.Pk
@@ -784,6 +806,11 @@ _This action cannot be undone_""")
 
         self.b_tunn.setEnabled(True)
         self.b_auth.setEnabled(True)
+
+        self.setup_window.step_enable(['Port Forward',
+                                       'Authenticate Remote User'])
+
+        self.update_userview()
 
     def toggle_tunnel(self, state):
         """ Toggle the Wireguard directly with wg or wg-quick up/down
@@ -1065,6 +1092,29 @@ class TunnelConfig(UI_Dialog):
         layout.addWidget(info)
         layout.addWidget(self.WG_PORT)
 
+        self.WG_ALL = QtWidgets.QPushButton("All traffic")
+        self.WG_ALL.setCheckable(True)
+        self.WG_ALL.setChecked(False)
+
+        self.WG_ONLY = QtWidgets.QPushButton("Resolve traffic only")
+        self.WG_ONLY.setCheckable(True)
+        self.WG_ONLY.setChecked(True)
+
+        self.WG_ALL.clicked.connect(lambda x: self.WG_ONLY.setChecked(not x))
+        self.WG_ONLY.clicked.connect(lambda x: self.WG_ALL.setChecked(not x))
+
+        pathbox = QHBoxLayout()
+        pathbox.addWidget(self.WG_ALL)
+        pathbox.addWidget(self.WG_ONLY)
+        pathbox.setContentsMargins(0,0,0,0)
+        pathbox.setSpacing(0)
+
+        info = QLabel("Route _all_ user traffic through Wireguard, or _only_ __Resolve__ traffic?")
+        info.setTextFormat(Qt.MarkdownText)
+
+        layout.addWidget(info)
+        layout.addLayout(pathbox)
+
         # OK and Cancel buttons
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -1075,7 +1125,14 @@ class TunnelConfig(UI_Dialog):
         layout.addWidget(buttons)
 
     def get_output(self):
-        return self.WG_PORT.text()
+
+        if self.WG_ALL.isChecked():
+            WG_ONLY = False
+
+        if self.WG_ONLY.isChecked():
+            WG_ONLY = True
+
+        return self.WG_PORT.text(), WG_ONLY
 
 
 class DatabaseConfig(UI_Dialog):
@@ -1129,7 +1186,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     app.setApplicationName("Resolve Mission Control Server")
 
-    icon = QIcon(link('ui/icons/icon.ico'))
+    icon = QIcon(link('ui/icons/icon_v1.ico'))
     app.setWindowIcon(icon)
 
     w = Server(app)

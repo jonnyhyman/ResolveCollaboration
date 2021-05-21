@@ -20,9 +20,11 @@ async def tcp_authenticate_request(QUEUE, S_IP, S_PORT, SPASS, encrypted):
     auth_reply = await reader.read(1024)
 
     try:
+
         auth_reply = Fernet(str(SPASS,'utf-8')).decrypt(auth_reply)
         auth_reply = auth_reply.decode()
         QUEUE.put(f"Server Authentication Reply: {auth_reply}")
+        print(f"Server Authentication Reply: {auth_reply}")
 
         auth_reply = auth_reply.split(',')
         QUEUE.put(auth_reply)
