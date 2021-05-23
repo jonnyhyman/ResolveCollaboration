@@ -1,15 +1,16 @@
-# Welcome to Resolve Mission Control
-Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
+<center><img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/RMC_crop.png?raw=true" alt="" width="1000"/></center>
 
-|Client (somewhere far away) | Server (home base) |
-|:---|:---|
-|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Image%205-9-21%20at%207.00%20PM.jpg?raw=true" alt="Client" width="800"/>|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-05-09%20at%206.40.03%20PM.png?raw=true" alt="Server" width="800"/>|
-
+#### Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
 ## Features
 - Secure __over the internet__ video editing collaboration for Resolve
 - [Wireguard](https://www.wireguard.com/) VPN tunnel setup, management and control
 - Secure user authentication
 - Resolve database management, __replacing__ _the overly-limited DaVinci Resolve Project Server_
+
+
+|Client (somewhere far away) | Server (home base) |
+|:---|:---|
+|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Image%205-9-21%20at%207.00%20PM.jpg?raw=true" alt="Client" width="800"/>|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-05-09%20at%206.40.03%20PM.png?raw=true" alt="Server" width="800"/>|
 
 ## Download the Client
 
@@ -17,8 +18,8 @@ There are mandatory installation instructions, [please see this page](https://gi
 
 | Platform | Download     |
 |:---------|-------------:|
-|macOS 10.15+ | [**macOS** .app](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.0/macOS_Resolve.Mission.Control-v0.1.0-signed.zip) |
-|Windows 10 |[**Windows** .exe](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.0/Win10-Resolve.Mission.Control-v0.1.0.zip) |
+|macOS 10.15+ | [**macOS** .app](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.2/macOS-Resolve.Mission.Control-v0.1.2.zip) |
+|Windows 10 |[**Windows** .exe](https://github.com/jonnyhyman/ResolveCollaboration/releases/download/0.1.2/Win10-Resolve.Mission.Control-v0.1.2.zip) |
 |Linux | Looking for beta testers |
 
 ---
@@ -35,11 +36,13 @@ There are mandatory installation instructions, [please see this page](https://gi
     - __Have fun!__
 
 ---
+- __Server__
 > For more details on what's below, read the [Server guide](https://github.com/jonnyhyman/ResolveCollaboration/wiki/Server-guide)
 
 - Clone this repo's source code:
     - Option 1) `git clone https://github.com/jonnyhyman/ResolveCollaboration.git`
     - Option 2) [Download and unzip this](https://github.com/jonnyhyman/ResolveCollaboration/archive/refs/heads/main.zip)
+    - Open a shell (Powershell/Terminal) and change directory to the `rmc` folder `cd /path/to/ResolveCollaboration/rmc`
 
 - __Server on macOS__
     - Install [Homebrew](https://brew.sh/)
@@ -47,7 +50,8 @@ There are mandatory installation instructions, [please see this page](https://gi
         - `brew install wireguard-tools`
         - `brew install python3` (if you don't already have Python 3)
         - `pip install PyQt5==5.15.2 cryptography psycopg2-binary elevate`
-        - `python rmc_server.py`
+        - `sudo python rmc_server.py`
+
 - __Server on Windows__    
     - Install [Python 3.9](https://www.python.org/downloads/)
     - Install [Wireguard for Windows](https://www.wireguard.com/install/)
