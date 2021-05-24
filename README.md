@@ -7,7 +7,6 @@
 - Secure user authentication
 - Resolve database management, __replacing__ _the overly-limited DaVinci Resolve Project Server_
 
-
 |Client (somewhere far away) | Server (home base) |
 |:---|:---|
 |<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Image%205-9-21%20at%207.00%20PM.jpg?raw=true" alt="Client" width="800"/>|<img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/Screen%20Shot%202021-05-09%20at%206.40.03%20PM.png?raw=true" alt="Server" width="800"/>|
@@ -23,6 +22,9 @@ There are mandatory installation instructions, [please see this page](https://gi
 |Linux | Looking for beta testers |
 
 ---
+## Setup video tutorial
+[![IMAGE ALT TEXT](http://img.youtube.com/vi/7j3QJOXx3bk/0.jpg)](http://www.youtube.com/watch?v=7j3QJOXx3bk "DaVinci Resolve Collaboration ... through the INTERNET! 🌎")
+
 ## Quickstart
 - __Client__
     - Open the app, [bypassing some OS preventions](https://github.com/jonnyhyman/ResolveCollaboration/releases/tag/0.1.0)
