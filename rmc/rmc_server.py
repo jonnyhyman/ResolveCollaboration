@@ -27,6 +27,7 @@ from subprocess import Popen, PIPE
 import subprocess
 
 import platform
+user_platform = platform.system().lower()
 
 """
 Server app:
@@ -132,14 +133,14 @@ class Server(UI_Common):
             self.setup_window.step_enable(['Port Forward',
                                            'Authenticate Remote User'])
 
-            if platform.system().lower() == 'darwin':
+            if user_platform == 'darwin':
                 self.wireguard = WireguardServer_macOS(config=self.config)
 
                 # Check if already running, set ui state
                 if self.wireguard.state:
                     self.toggle_tunnel(True)
 
-            elif platform.system().lower() == 'windows':
+            elif user_platform == 'windows':
                 self.wireguard = WireguardServer_Windows(config=self.config)
 
                 # Check if already running, set ui state
@@ -571,10 +572,10 @@ _This action cannot be undone_""")
         if reply != QtWidgets.QMessageBox.Yes:
             return
 
-        if platform.system().lower() == 'darwin':
+        if user_platform == 'darwin':
             out = postgres.postgres_restart_macos()
 
-        elif platform.system().lower() == 'windows':
+        elif user_platform == 'windows':
             out = postgres.postgres_restart_windows()
 
         print(f">>> postgres restarted : {out}")
@@ -662,10 +663,10 @@ _This action cannot be undone_""")
     def update_hba(self):
         """ Update the access permissions for all databases in list """
 
-        if platform.system().lower() == 'darwin':
+        if user_platform == 'darwin':
             default_hba_text = default_hba.default_hba_macos
 
-        elif platform.system().lower() == 'windows':
+        elif user_platform == 'windows':
             default_hba_text = default_hba.default_hba_windows
 
         # Default hba_conf from util.default_hba
@@ -776,7 +777,7 @@ _This action cannot be undone_""")
 
         self.wg_only = ONLY
 
-        if platform.system().lower() == 'darwin':
+        if user_platform == 'darwin':
 
             try:
                 self.wireguard = WireguardServer_macOS(force_reset = True,
@@ -788,7 +789,7 @@ _This action cannot be undone_""")
                         "Must be run as root\n>>> sudo python rmc_server.py")
                 return
 
-        elif platform.system().lower() == 'windows':
+        elif user_platform == 'windows':
 
             try:
                 self.wireguard = WireguardServer_Windows(force_reset = True,
@@ -889,31 +890,31 @@ class ServerSetup(QWidget):
         self.b_setup = {}
 
         # Create login details for the server itself (internally, externally)
-        b = self.add_step("Configure Server", 'ui/icons/database.png', 0,0)
+        b = self.add_step("Configure Server", link('ui/icons/database.png'), 0,0)
         b.setEnabled(True)
         b.clicked.connect(self.server.config_server)
         self.add_arrow(0,1)
 
         # Prep Wireguard: method (manual or automatic), config, subet, ip, etc...
-        b = self.add_step("Create Tunnel", 'ui/icons/database_secured.png', 0,2)
+        b = self.add_step("Create Tunnel", link('ui/icons/database_secured.png'), 0,2)
         b.clicked.connect(self.server.config_tunnel)
         self.add_arrow(0,3)
 
         # Guide to turning on port forwarding
-        b = self.add_step("Port Forward", 'ui/icons/database.png', 0,4)
+        b = self.add_step("Port Forward", link('ui/icons/database.png'), 0,4)
         b.clicked.connect(lambda: PortForward(self.server))
 
         # Create remote user into config/database
-        b = self.add_step("Create Remote User", 'ui/icons/user.png', 1,0)
+        b = self.add_step("Create Remote User", link('ui/icons/user.png'), 1,0)
         b.clicked.connect(self.server.new_user)
         self.add_arrow(1,1)
 
         # Authenticate remote user, update wireguard, update hba
-        b = self.add_step("Authenticate Remote User", 'ui/icons/user_secured.png', 1,2)
+        b = self.add_step("Authenticate Remote User", link('ui/icons/user_secured.png'), 1,2)
         b.clicked.connect(lambda: self.server.toggle_auth(True))
 
         # Create login details for the server itself (internally, externally)
-        b = self.add_step("Reset Server", 'ui/icons/database.png', 2,0)
+        b = self.add_step("Reset Server", link('ui/icons/database.png'), 2,0)
         b.setEnabled(True)
         b.clicked.connect(self.server.reset_server)
 
@@ -1193,7 +1194,17 @@ class DatabaseConfig(UI_Dialog):
 if __name__ == '__main__':
 
     # Request root/admin
-    elevate(show_console=False)
+    if user_platform == 'darwin':
+        from util import sudoscience
+        sudoscience.elevate(show_console=False,
+            name = "Resolve Mission Control Server needs your permission to control Wireguard and PostgreSQL")
+
+    elif user_platform == 'windows':
+        from util import uacontrol
+        uacontrol.elevate(show_console=False)
+
+    else:
+        raise(Exception("Your platform is not supported"))
 
     app = QApplication(sys.argv)
     app.setApplicationName("Resolve Mission Control Server")

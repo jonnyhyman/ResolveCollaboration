@@ -13,7 +13,6 @@ import sys
 
 from multiprocessing import Process, Queue
 import multiprocessing
-import platform
 
 from datetime import datetime
 import time
@@ -22,6 +21,9 @@ import validators
 import webbrowser
 import os
 import ctypes
+
+import platform
+user_platform = platform.system().lower()
 
 """
 Client app:
@@ -273,9 +275,9 @@ def ConnectToTunnel(client):
 - Open the .conf file you saved
 - Activate"""
 
-    if platform.system().lower() == 'darwin':
+    if user_platform == 'darwin':
         installed = Path("/Applications/WireGuard.app").exists()
-    elif platform.system().lower() == 'windows':
+    elif user_platform == 'windows':
         installed = Path("C:/Program Files/WireGuard/wireguard.exe").exists()
     else:
         return
@@ -302,10 +304,10 @@ def ConnectToTunnel(client):
 
     if installed and open:
 
-        if platform.system().lower() == 'darwin':
+        if user_platform == 'darwin':
             launcher = ("open /Applications/WireGuard.app")
 
-        elif platform.system().lower() == 'windows':
+        elif user_platform == 'windows':
             launcher = ('start "" "C:/Program Files/WireGuard/wireguard.exe"')
 
         try:
@@ -315,9 +317,9 @@ def ConnectToTunnel(client):
 
     elif not installed and open:
 
-        if platform.system().lower() == 'darwin':
+        if user_platform == 'darwin':
             app = ("""https://apps.apple.com/us/app/wireguard/id1451685025?mt=12""")
-        elif platform.system().lower() == 'windows':
+        elif user_platform == 'windows':
             app = ("""https://www.wireguard.com/install/""")
 
         webbrowser.open(app, new=2)
@@ -473,7 +475,7 @@ if __name__ == '__main__':
     w = Client(app)
     w.show()
 
-    if platform.system().lower() == 'windows':
+    if user_platform == 'windows':
         myappid = u'rmc.rmc.rmcc' # arbitrary string
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
