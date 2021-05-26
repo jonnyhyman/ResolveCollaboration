@@ -12,7 +12,6 @@ from wireguard import WireguardServer_macOS, WireguardServer_Windows
 # 3rd party package imports
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import psycopg2
-from elevate import elevate
 
 # built-in imports
 from pathlib import Path
@@ -283,9 +282,6 @@ _This action cannot be undone_""")
         self.setup_window.step_enable(['Create Remote User'])
 
         self.update_userview()
-        # self.user_timer = QTimer(self)
-        # self.user_timer.timeout.connect(self.update_userview)
-        # self.user_timer.start(60_000)
 
     def update_userview(self):
         """ Update userlist view
@@ -744,7 +740,6 @@ _This action cannot be undone_""")
             else:
                 self.message.setText("__Host-Based Authentication failed to update__")
 
-
             # True if suceeded, False if failed
             return out
 
@@ -784,9 +779,9 @@ _This action cannot be undone_""")
                                                         port = self.wg_port,
                                                         subnet = self.subnet)
 
-            except PermissionError:
+            except PermissionError as e:
                 UI_Error(self, "Wireguard Configuration Failed",
-                        "Must be run as root\n>>> sudo python rmc_server.py")
+                    f"Must be run as root\n>>> sudo python rmc_server.py\n\n{e}")
                 return
 
         elif user_platform == 'windows':
@@ -796,9 +791,9 @@ _This action cannot be undone_""")
                                                         port = self.wg_port,
                                                         subnet = self.subnet)
 
-            except PermissionError:
+            except PermissionError as e:
                 UI_Error(self, "Wireguard Configuration Failed",
-                        "Must be run as root\n>>> sudo python rmc_server.py")
+                    f"Must be run as admin\n\n{e}")
                 return
         else:
             raise(NotImplementedError("Only macOS/Windows Wireguard Server supported"))
@@ -852,7 +847,8 @@ _This action cannot be undone_""")
         """
         self.close_authentication()
 
-        if hasattr(self,'wireguard') and self.wireguard.state:
+        if hasattr(self,'wireguard'):# and self.wireguard.state:
+            
             reply = QMessageBox.question(self, 'Close Tunnel?',
                              "Do you want to shutdown Wireguard?",
                              QMessageBox.Yes,
@@ -1193,23 +1189,10 @@ class DatabaseConfig(UI_Dialog):
 
 if __name__ == '__main__':
 
-    # Request root/admin
-    if user_platform == 'darwin':
-        from util import sudoscience
-        sudoscience.elevate(show_console=False,
-            name = "Resolve Mission Control Server needs your permission to control Wireguard and PostgreSQL")
-
-    elif user_platform == 'windows':
-        from util import uacontrol
-        uacontrol.elevate(show_console=False)
-
-    else:
-        raise(Exception("Your platform is not supported"))
-
     app = QApplication(sys.argv)
     app.setApplicationName("Resolve Mission Control Server")
 
-    icon = QIcon(link('ui/icons/icon_v1.ico'))
+    icon = QIcon(link('ui/icons/icon_rmcs.ico'))
     app.setWindowIcon(icon)
 
     w = Server(app)

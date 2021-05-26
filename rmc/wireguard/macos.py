@@ -1,13 +1,16 @@
 from pathlib import Path
-from subprocess import Popen, PIPE
-import subprocess
 import os
 
 from ipaddress import ip_address, ip_network
 
+from subprocess import Popen, PIPE
+import subprocess
+
+from util.sudoscience import elevated_check_output, elevated_Popen, elevated_system
+import tempfile
 
 class WireguardServer_macOS:
-    """ Performs all setup for a Wireguard macOS server. Must be run as root """
+    """ Performs all setup for a Wireguard macOS server """
 
     def __init__(self, force_reset=False, config=None,
                         port=51820, subnet = "9.0.0.0/24"):
@@ -24,9 +27,8 @@ class WireguardServer_macOS:
 
         # -------- Setup for the first time:
 
-        sh_path = Path("/usr/local/etc/wireguard/")
-        if not sh_path.exists():
-            sh_path.mkdir(parents=True)
+        temp_dir = Path("/tmp/wireguard")
+        temp_dir.mkdir(exist_ok=True) # temp directory
 
         # all backslashes escaped as \\ so they don't disappear (and wreak havoc)
         postup = (f"""#!/bin/sh
@@ -50,9 +52,9 @@ echo 'nat on en0 from {self.subnet} to any -> (en0)' | \\
 
         # print(postup)
 
-        with open('/usr/local/etc/wireguard/postup.sh', 'w') as postup_file:
+        # requires sudo to write
+        with open(temp_dir / 'postup.sh', 'w') as postup_file:
             postup_file.write(postup)
-
 
         postdown = ("""#!/bin/sh
 
@@ -70,19 +72,45 @@ rm -f /usr/local/var/run/wireguard/pf_wireguard_token.txt""")
 
         # print(postdown)
 
-        with open('/usr/local/etc/wireguard/postdown.sh', 'w') as postdown_file:
+        with open(temp_dir / 'postdown.sh', 'w') as postdown_file:
             postdown_file.write(postdown)
 
-        # -------- Make executable
+        # -------- Copy files and Make executable
 
         try:
-            assert(os.system("chmod u+x /usr/local/etc/wireguard/*.sh") == 0)
+            output = elevated_system(
+                ("mkdir --parents /usr/local/etc/wireguard/; "
+                "mv -f /tmp/wireguard/postup.sh /usr/local/etc/wireguard/postup.sh; "
+                "mv -f /tmp/wireguard/postdown.sh /usr/local/etc/wireguard/postdown.sh; "
+                "chmod u+x /usr/local/etc/wireguard/*.sh"),
+                prompt=("Resolve Mission Control wants to create and change "
+                        "execution privileges on Wireguard files")
+            )
+
+            assert(output == 0)
+            print(">>> Set up wireguard server!")
+
         except AssertionError:
-            print("Could not make file executable. Running app as sudo?")
+            raise(PermissionError("Could not run sudo commands to set up Wireguard"))
 
         # -------- Configure
 
         self.pk, self.Pk = self.pk_Pk_pair()
+
+    def write_config(self, server_config):
+
+        temp_dir = Path("/tmp/wireguard")
+        temp_dir.mkdir(exist_ok=True) # temp directory
+
+        with open(temp_dir / "server.conf", 'w') as conf:
+            conf.write(server_config)
+
+        elevated_system(
+            "mv -f /tmp/wireguard/server.conf /usr/local/etc/wireguard/server.conf",
+            prompt=("Resolve Mission Control wants to overwrite the "
+                    "Wireguard server configuration")
+        )
+
 
     def update_config(self, userlist):
         ''' Overwrite the config with the current userlist'''
@@ -141,55 +169,48 @@ AllowedIPs = {user['ip']}/32
         else:
             do_up = False
 
-        with open("/usr/local/etc/wireguard/server.conf", 'w') as conf:
-            conf.write(server_config)
+        self.write_config(server_config)
 
         if do_up:
             self.up()
 
+    def show(self):
+        wg = elevated_Popen("sudo wg show",
+            prompt='Resolve Mission Control wants to check the status of Wireguard')
+        return wg
+
     @property
     def state(self):
-        proc = Popen(['wg','show'], stdout=PIPE, stderr=PIPE)
-        wg, err = proc.communicate()
-        wg = str(wg,'utf-8')
-        return wg != ""
+        return self.show().strip() != "" # True if wireguard running
 
     def up(self):
 
-        # already up?
-        if self.state:
-            # Don't go up if already up
-            print('... Wireguard is already up')
-            return
-        else:
-            up = subprocess.check_output(
-                "sudo wg-quick up /usr/local/etc/wireguard/server.conf",
+        # check if wireguard is up, if not, do up
+        cmd = ( '''if [[ $(sudo wg show) == \\"\\" ]]; '''
+                '''then sudo wg-quick up /usr/local/etc/wireguard/server.conf; '''
+                '''else echo \\"... Wireguard already up\\"; fi''' )
 
-                shell=True,
-                stderr=subprocess.STDOUT)
-
-            print(str(up,'utf-8'))
-
-    def show(self):
-        show = subprocess.check_output("sudo wg show", shell=True, stderr=subprocess.STDOUT)
-        print(str(output,'utf-8')) # returns empty if
+        up = elevated_Popen(
+                cmd, prompt=("Resolve Mission Control wants to start Wireguard")
+        )
 
     def down(self):
-        if not self.state:
-            print('... Wireguard is already down')
-            return
 
-        down = subprocess.check_output(
-                "sudo wg-quick down /usr/local/etc/wireguard/server.conf",
+        # check if wireguard is down, if no, do down
+        cmd = ( '''if [[ $(sudo wg show) != \\"\\" ]]; '''
+                '''then sudo wg-quick down /usr/local/etc/wireguard/server.conf; '''
+                '''else echo \\"... Wireguard already down\\"; fi''' )
 
-                shell=True,
-                stderr=subprocess.STDOUT)
-
-        print(str(down,'utf-8'))
+        down = elevated_Popen(
+                cmd, prompt=("Resolve Mission Control wants to stop Wireguard")
+        )
 
     def pk_Pk_pair(self):
 
-        os.system("umask 077") # Ensure credentials don't leak from possible race condition.
+        # Ensure credentials don't leak from possible race condition.
+        os.system("umask 077")
+
+        # Get the keys
         os.system("wg genkey | tee privatekey | wg pubkey > publickey")
 
         with open('privatekey','r') as pk_file:
@@ -208,9 +229,7 @@ AllowedIPs = {user['ip']}/32
                 like: {Pk: {'ip':'...', 'handshake': True}}
         """
 
-        proc = Popen(['wg','show'], stdout=PIPE, stderr=PIPE)
-        wg, err = proc.communicate()
-        wg = str(wg,'utf-8')
+        wg = self.show()
 
         peers = {}
 

@@ -23,8 +23,8 @@ def postgres_restart_windows():
     return False
 
 def postgres_restart_macos():
+    from util.sudoscience import elevated_check_output
     from pathlib import Path
-    import subprocess
     import psycopg2
 
     with psycopg2.connect(
@@ -50,12 +50,12 @@ def postgres_restart_macos():
     print("... restarting postgres >>>", command)
 
     try:
-        out = subprocess.check_output(command,
-                                    timeout=3,
-                                    shell=True,
-                                    stderr=subprocess.STDOUT)
+
+        out = elevated_check_output(command, timeout=3,
+            prompt="Resolve Mission Control wants to restart PostgreSQL Server")
     except subprocess.TimeoutExpired:
-        # This is actually the expected route
+        # This is actually the expected route.
+        # ... postgres restart doesn't send a return code, so looks like a hang
         pass
 
     # Check if it worked

@@ -1,57 +1,81 @@
-# from https://github.com/barneygale/elevate with additions
-
-import errno
+from subprocess import Popen, PIPE
+import subprocess
 import os
-import sys
-try:
-    from shlex import quote
-except ImportError:
-    from pipes import quote
 
+def command_wrap(command, prompt):
 
-def quote_shell(args):
-    return " ".join(quote(arg) for arg in args)
-
-
-def quote_applescript(string):
-    charmap = {
-        "\n": "\\n",
-        "\r": "\\r",
-        "\t": "\\t",
-        "\"": "\\\"",
-        "\\": "\\\\",
-    }
-    return '"%s"' % "".join(charmap.get(char, char) for char in string)
-
-
-def elevate(show_console=True, graphical=True, name="osascript"):
-    if os.getuid() == 0:
-        return
-
-    args = [sys.executable] + sys.argv
-    commands = []
-
-    if graphical:
-        if sys.platform.startswith("darwin"):
-            commands.append([
-                "osascript",
-                "-e",
-                "do shell script %s "
-                f'with prompt "{name}" '
+    command = ("osascript "
+                "-e "
+                "'"
+                f'do shell script "{command}" '
+                f'with prompt "{prompt}" '
                 "with administrator privileges "
                 "without altering line endings"
-                % quote_applescript(quote_shell(args))])
+                "'")
 
-        if sys.platform.startswith("linux") and os.environ.get("DISPLAY"):
-            commands.append(["pkexec"] + args)
-            commands.append(["gksudo"] + args)
-            commands.append(["kdesudo"] + args)
+    return command
 
-    commands.append(["sudo"] + args)
+    #
+    # return (
+    #     f"sudo 'osascript -e "
+    #     """do shell script """
+    #     f'"{command}" with prompt "{prompt}" '
+    #     'with administrator privileges '
+    #     'without altering line endings '
+    #     # "'"
+    # )
 
-    for args in commands:
-        try:
-            os.execlp(args[0], *args)
-        except OSError as e:
-            if e.errno != errno.ENOENT or args[0] == "sudo":
-                raise
+def elevated_check_output(command,
+                        timeout=None,
+                        prompt = "Resolve Mission Control wants to run sudo"):
+
+
+    command = command_wrap(command, prompt)
+
+    print("Command >>>", command)
+
+    try:
+        out = subprocess.check_output(
+            command,
+
+            shell=True,
+            timeout=timeout,
+            stderr=subprocess.STDOUT)
+
+
+        print("... Output:")
+        print( str(out, 'utf-8') )
+
+        return out
+
+    except Exception as e:
+
+        print("... Errors:")
+        print( e )
+
+def elevated_Popen(command,
+                        prompt = "Resolve Mission Control wants to run sudo"):
+
+    command = command_wrap(command, prompt)
+
+    proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
+    out, err = proc.communicate()
+
+    out = str(out,'utf-8')
+    err = str(err,'utf-8')
+
+    print("Command >>>", command)
+    print("... Output:")
+    print( out )
+    print("... Errors:")
+    print( err )
+
+    return out
+
+def elevated_system(command,
+                        prompt = "Resolve Mission Control wants to run sudo"):
+
+    print("Command >>>", command)
+    command = command_wrap(command, prompt)
+
+    return os.system(command)
