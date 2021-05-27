@@ -5,7 +5,7 @@ from auth.server import tcp_server
 from auth.crypt import passkey, Fernet
 
 #
-from util import postgres, default_hba
+from util import postgres, default_hba, sudoscience
 
 from wireguard import WireguardServer_macOS, WireguardServer_Windows
 
@@ -134,10 +134,6 @@ class Server(UI_Common):
 
             if user_platform == 'darwin':
                 self.wireguard = WireguardServer_macOS(config=self.config)
-
-                # Check if already running, set ui state
-                if self.wireguard.state:
-                    self.toggle_tunnel(True)
 
             elif user_platform == 'windows':
                 self.wireguard = WireguardServer_Windows(config=self.config)
@@ -559,11 +555,11 @@ _This action cannot be undone_""")
     def database_restart(self):
         """ Restart PostgreSQL """
 
-        quit_msg = "Restart the PostgreSQL Server?"
-        reply = QMessageBox.question(self, 'Restart PostgreSQL',
-                         quit_msg,
-                         QMessageBox.Yes,
-                         QMessageBox.No)
+        icon = QPixmap(link('ui/icons/postgres.png'))
+        icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
+
+        reply = UI_Question(self).ask("Restart PostgreSQL",
+                                "Restart the PostgreSQL Server?", icon)
 
         if reply != QtWidgets.QMessageBox.Yes:
             return
@@ -574,7 +570,7 @@ _This action cannot be undone_""")
         elif user_platform == 'windows':
             out = postgres.postgres_restart_windows()
 
-        print(f">>> postgres restarted : {out}")
+        print(f">>> PostgreSQL restarted with value : {out}")
 
         if out:
             self.message.setText("_PostgreSQL Server Restarted_")
@@ -584,6 +580,9 @@ _This action cannot be undone_""")
     def database_delete(self):
         """ Delete a postgres database permanently """
 
+        icon = QPixmap(link('ui/icons/postgres.png'))
+        icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
+
         ui_db = self.dbses.selected()
 
         if not ui_db:
@@ -592,19 +591,14 @@ _This action cannot be undone_""")
         db_name = ui_db.db_details['name']
 
         quit_msg = f"Are you sure you want to delete database {db_name}?"
-        reply = QMessageBox.question(self, 'Delete Database?',
-                         quit_msg,
-                         QMessageBox.Yes,
-                         QMessageBox.No)
+        reply = UI_Question(self).ask('Delete Database?', quit_msg, icon)
 
         if reply != QtWidgets.QMessageBox.Yes:
             return
 
         quit_msg = f"Seriously, this will delete everything in {db_name}. Continue?"
-        reply = QMessageBox.question(self, 'Delete Database???',
-                         quit_msg,
-                         QMessageBox.Yes,
-                         QMessageBox.No)
+
+        reply = UI_Question(self).ask('Delete Database?', quit_msg, icon)
 
         if reply != QtWidgets.QMessageBox.Yes:
             return
@@ -656,23 +650,22 @@ _This action cannot be undone_""")
         UI_Successful(self, f"Database {db_name} Deleted!",
                             "I sure hope that was intentional!")
 
-    def update_hba(self):
+    def update_hba(self, debug=True):
         """ Update the access permissions for all databases in list """
 
-        if user_platform == 'darwin':
-            default_hba_text = default_hba.default_hba_macos
-
-        elif user_platform == 'windows':
-            default_hba_text = default_hba.default_hba_windows
-
-        # Default hba_conf from util.default_hba
-        hba = str(default_hba_text)
+        hba_lines = []
         hba_file = None
+        connection = None
 
         for db, ui_db in self.dbses.ui_dbses.items():
 
             self.dbses.select(ui_db.db_details, fail_queitly = True)
             connection = ui_db.connection
+
+            if ui_db.db_details['host'] != "127.0.0.1":
+                # ONLY change pg_hba.conf on LOCAL machine (server)
+                #  any remote call would be erroneous
+                continue
 
             if connection:
 
@@ -692,56 +685,94 @@ _This action cannot be undone_""")
 
                 hba_file = crs.fetchall()[0][0]
 
-                if not Path(hba_file).exists():
-                    # This database connection is not on the server machine
-                    print(f"... hba file {hba_file} for database {ui_db.db_details['name']} doesn't exist!")
-                    continue
-
-                hba += f"""# Added by RMCS at {datetime.datetime.utcnow()}\n"""
-
                 db_name = ui_db.db_details['name']
                 db_user = ui_db.db_details['user']
 
-                hba +="    ".join(['host', db_name, db_user, self.subnet, 'md5'])
-                hba += '\n'
+                db_name = f'"{db_name}"' # allows for spaces
+                db_user = f'"{db_user}"' # allows for spaces
+
+                hba_lines.append("    ".join(
+                        ['host', db_name, db_user, self.subnet, 'md5']
+                    )
+                )
 
         if hba_file and connection:
-            # Snag the last hba_file and connection from the for loop
+
+            if debug: print("... Building hba update")
+
+            # Snag the last `hba_file` and `connection` from the for loop
             #  to actually execute the file saving etc...
 
-            # This fails if the last database listed is not on the server machine
+            if user_platform == 'darwin':
+                command = ""
 
-            if not Path(hba_file).exists():
-                # This database connection is not on the server machine
-                print(f"... hba file {hba_file} for database {ui_db.db_details['name']} doesn't exist!")
-                return
+                hba_file_backup = Path(hba_file).parent / "pg_hba_rmcsbackup.conf"
+                command += f"""sudo cp -b "{hba_file}" "{hba_file_backup}"; """
 
-            # Backup
-            backup_file = Path(hba_file).parent / Path("pg_hba_rmcsbackup.conf")
+                # Append our new lines into configuration
+                for hba_line in hba_lines:
 
-            with open(backup_file,'w') as bkup:
+                    command += (f"""if ! sudo grep -Fx '{hba_line}' '{hba_file}'; """
+                                f"""then echo '{hba_line}' | sudo tee -a '{hba_file}'; fi;""")
 
-                with open(hba_file,'r') as file:
-                    bkup.write(file.read())
+                if debug: readable = ';   \n'.join(command.split(';'))
+                if debug: print(f"... About to run >>> \n{readable}\n---")
 
-            # Overwrite with new
-            with open(hba_file,'w') as file:
-                file.write(hba)
+                try:
+                    out,err = sudoscience.elevated_Popen(command, errors=True,
+                        prompt=("Resolve Mission Control wants to read PostgreSQL "
+                                "access permissions and alter them if needed")
+                    )
+                except PermissionError:
+                    return
 
-            # Reload config
-            crs.execute("select pg_reload_conf()")
-            out = crs.fetchall()[0][0]
-            crs.close()
+                # Reload config
+                crs.execute("select pg_reload_conf()")
+                out = crs.fetchall()[0][0]
+                crs.close()
 
-            print(f">>> pg_hba.conf updated with exit code: {out}")
+                print(f">>> pg_hba.conf updated with exit code: {out}")
 
-            if out:
-                self.message.setText("_Updated Host-Based Authentication_")
+                if out:
+                    self.message.setText("_Updated Host-Based Authentication_")
+                else:
+                    self.message.setText("__Host-Based Authentication failed to update__")
+
+                # True if suceeded, False if failed
+                return err.strip() == ""
+
+            elif user_platform == 'windows':
+
+                # Backup
+                backup_file = Path(hba_file).parent / Path("pg_hba_rmcsbackup.conf")
+
+                with open(backup_file,'w') as bkup:
+
+                    with open(hba_file,'r') as file:
+                        bkup.write(file.read())
+
+                # Overwrite with new
+                with open(hba_file,'w') as file:
+                    file.write(hba)
+
+                # Reload config
+                crs.execute("select pg_reload_conf()")
+                out = crs.fetchall()[0][0]
+                crs.close()
+
+                print(f">>> pg_hba.conf updated with exit code: {out}")
+
+                if out:
+                    self.message.setText("_Updated Host-Based Authentication_")
+                else:
+                    self.message.setText("__Host-Based Authentication failed to update__")
+
+
+                # True if suceeded, False if failed
+                return out
             else:
-                self.message.setText("__Host-Based Authentication failed to update__")
+                raise(Exception(f"Platform {user_platform} is not supported"))
 
-            # True if suceeded, False if failed
-            return out
 
     def config_tunnel(self):
         """ Create a new Wireguard configuration
@@ -761,7 +792,6 @@ _This action cannot be undone_""")
             PORT = self.wg_port
 
         # Port verify
-
         try:
             self.wg_port = int(PORT)
 
@@ -823,22 +853,31 @@ _This action cannot be undone_""")
     def toggle_tunnel(self, state):
         """ Toggle the Wireguard directly with wg or wg-quick up/down
         """
+
         if not hasattr(self, 'wireguard'):
             print("... Tried to toggle non-existent Wireguard instance")
             return
 
         if state:
             # Open tunnel
-            self.b_tunn.setText("Deactivate Tunnel")
-            self.wireguard.up()
-            self.message.setText("Wireguard tunnel open!")
+            status = self.wireguard.up()
+            self.message.setText(f"Wireguard tunnel{status} open!")
+
+            if not 'failed' in status:
+                self.b_tunn.setText("Deactivate Tunnel")
+
         else:
             # Close tunnel
-            self.b_tunn.setText("Activate Tunnel")
-            self.wireguard.down()
-            self.message.setText("Wireguard tunnel closed!")
+            status = self.wireguard.down()
+            self.message.setText(f"Wireguard tunnel{status} closed!")
 
-        self.b_tunn.setChecked(state)
+            if not 'failed' in status:
+                self.b_tunn.setText("Activate Tunnel")
+
+        if not 'failed' in status:
+            self.b_tunn.setChecked(state)
+        else:
+            self.b_tunn.setChecked(not state)
 
     def closeEvent(self, event):
         """ Upon closing server:
@@ -847,16 +886,17 @@ _This action cannot be undone_""")
         """
         self.close_authentication()
 
-        if hasattr(self,'wireguard'):# and self.wireguard.state:
-            
-            reply = QMessageBox.question(self, 'Close Tunnel?',
-                             "Do you want to shutdown Wireguard?",
-                             QMessageBox.Yes,
-                             QMessageBox.No)
+        # use weak status (button.isChecked) so we don't need to request sudo
+        if hasattr(self,'wireguard') and self.b_tunn.isChecked():
 
-            # icon = QPixmap(link('ui/icons/wireguard.png'))
-            # icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
-            # reply.setIconPixmap(icon)
+            icon = QPixmap(link('ui/icons/wireguard.png'))
+            icon = icon.scaledToWidth(100, Qt.SmoothTransformation)
+
+            reply = UI_Question(self).ask('Close Tunnel?',
+                             "Do you want to shutdown Wireguard?",
+                             icon)
+
+
 
             if reply == QtWidgets.QMessageBox.Yes:
                 self.toggle_tunnel(False)

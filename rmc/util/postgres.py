@@ -25,6 +25,7 @@ def postgres_restart_windows():
 def postgres_restart_macos():
     from util.sudoscience import elevated_check_output
     from pathlib import Path
+    import subprocess
     import psycopg2
 
     with psycopg2.connect(
@@ -44,19 +45,25 @@ def postgres_restart_macos():
         data_dir = Path(crs.fetchall()[0][1])
         pg_ctl = data_dir.absolute().parent / 'bin/pg_ctl'
 
+        crs.close()
+
     # Change directory into PostgreSQL and then restart with pg_ctl
     command = ( f'''cd {data_dir.absolute().parent}; '''
                 f'''sudo su postgres -c "{pg_ctl} restart -D {data_dir}"''')
-    print("... restarting postgres >>>", command)
+
+    # print("... restarting postgres >>>", command)
 
     try:
+        out = elevated_check_output(command, timeout=5, raise_errors=True,
+                    prompt="Resolve Mission Control wants to restart PostgreSQL Server")
 
-        out = elevated_check_output(command, timeout=3,
-            prompt="Resolve Mission Control wants to restart PostgreSQL Server")
     except subprocess.TimeoutExpired:
         # This is actually the expected route.
         # ... postgres restart doesn't send a return code, so looks like a hang
         pass
+
+    except PermissionError:
+        return False
 
     # Check if it worked
     try:
@@ -67,9 +74,9 @@ def postgres_restart_macos():
             password="DaVinci",
             host="127.0.0.1",
             port="5432",
-            connect_timeout=3,
+            connect_timeout=5,
             ) as connection:
-
             return True
+
     except psycopg2.OperationalError:
         return False

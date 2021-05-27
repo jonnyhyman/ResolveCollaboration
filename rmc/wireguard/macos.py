@@ -175,9 +175,12 @@ AllowedIPs = {user['ip']}/32
             self.up()
 
     def show(self):
-        wg = elevated_Popen("sudo wg show",
-            prompt='Resolve Mission Control wants to check the status of Wireguard')
-        return wg
+        try:
+            wg = elevated_Popen("sudo wg show",
+                prompt='Resolve Mission Control wants to check the status of Wireguard')
+            return wg
+        except PermissionError:
+            return ""
 
     @property
     def state(self):
@@ -186,24 +189,38 @@ AllowedIPs = {user['ip']}/32
     def up(self):
 
         # check if wireguard is up, if not, do up
-        cmd = ( '''if [[ $(sudo wg show) == \\"\\" ]]; '''
+        cmd = ( '''if [[ $(sudo wg show) == "" ]]; '''
                 '''then sudo wg-quick up /usr/local/etc/wireguard/server.conf; '''
-                '''else echo \\"... Wireguard already up\\"; fi''' )
+                '''else echo "... Wireguard already up"; fi''' )
+        try:
+            up = elevated_Popen(
+                    cmd, prompt=("Resolve Mission Control wants to start Wireguard")
+            )
+        except PermissionError:
+            return ' failed to go'
 
-        up = elevated_Popen(
-                cmd, prompt=("Resolve Mission Control wants to start Wireguard")
-        )
+        if 'Wireguard already' in up:
+            return ' already'
+        else:
+            return ''
 
     def down(self):
 
         # check if wireguard is down, if no, do down
-        cmd = ( '''if [[ $(sudo wg show) != \\"\\" ]]; '''
+        cmd = ( '''if [[ $(sudo wg show) != "" ]]; '''
                 '''then sudo wg-quick down /usr/local/etc/wireguard/server.conf; '''
-                '''else echo \\"... Wireguard already down\\"; fi''' )
+                '''else echo "... Wireguard already down"; fi''' )
+        try:
+            down = elevated_Popen(
+                    cmd, prompt=("Resolve Mission Control wants to stop Wireguard")
+            )
+        except PermissionError:
+            return ' failed to go'
 
-        down = elevated_Popen(
-                cmd, prompt=("Resolve Mission Control wants to stop Wireguard")
-        )
+        if 'Wireguard already' in down:
+            return ' already'
+        else:
+            return ''
 
     def pk_Pk_pair(self):
 

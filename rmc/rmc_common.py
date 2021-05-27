@@ -106,6 +106,33 @@ class UI_Dialog(QDialog):
 
         self.setStyleSheet(stylesheet)
 
+
+class UI_Question(QMessageBox):
+    """ Window to ask yes/no question.
+        - parent = main ui
+        - call `UI_Question.ask(head, info="", icon=QtGui.QIcon)` to prompt
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+
+        self.addButton(QMessageBox.Yes)
+        self.addButton(QMessageBox.No)
+
+    def ask(self, head, info="", icon=None):
+
+        self.setTextFormat(Qt.MarkdownText)
+
+        self.setText(head)
+        if info != "":
+            self.setInformativeText(info)
+
+        if icon:
+            icon = icon.scaledToWidth(50, Qt.SmoothTransformation)
+            self.setIconPixmap(icon)
+
+        return self.exec_()
+
 class UI_Common(QWidget):
     """ Main window for Resolve Mission Control, common between server/client"""
     def __init__(self, app, parent=None):
@@ -576,7 +603,7 @@ class UI_Database(QFrame):
         self.name = QLabel("__"+db_details['name']+"__")
         self.name.setTextFormat(Qt.MarkdownText)
 
-        self.host = QLabel(db_details['host'])
+        self.host = QLabel('`'+db_details['host']+'`')
         self.host.setTextFormat(Qt.MarkdownText)
 
         self.status = QLabel("_Disconnected_")

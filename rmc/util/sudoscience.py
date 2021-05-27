@@ -4,6 +4,12 @@ import os
 
 def command_wrap(command, prompt):
 
+    # quotes are escaped because we're planning
+    #  to run this in an osascript call (`elevated_check_output`)
+    command = command.replace("'", "'\\''") # ' --> '\\''
+    command = command.replace('"', '\\"') # " --> \\"
+
+
     command = ("osascript "
                 "-e "
                 "'"
@@ -13,20 +19,17 @@ def command_wrap(command, prompt):
                 "without altering line endings"
                 "'")
 
-    return command
+    import pyperclip
+    pyperclip.copy(command)
 
-    #
-    # return (
-    #     f"sudo 'osascript -e "
-    #     """do shell script """
-    #     f'"{command}" with prompt "{prompt}" '
-    #     'with administrator privileges '
-    #     'without altering line endings '
-    #     # "'"
-    # )
+    # flat, a little easier to debug:
+    # f"""osascript -e 'do shell script "{command}" with prompt "{prompt}" with administrator privileges without altering line endings'""")
+
+    return command
 
 def elevated_check_output(command,
                         timeout=None,
+                        raise_errors=False,
                         prompt = "Resolve Mission Control wants to run sudo"):
 
 
@@ -48,12 +51,19 @@ def elevated_check_output(command,
 
         return out
 
+    except subprocess.CalledProcessError:
+        raise(PermissionError("User rejected sudo command authorization"))
+
     except Exception as e:
 
-        print("... Errors:")
-        print( e )
+        if not raise_errors:
+            print("... Errors:")
+            print( e )
+        else:
+            raise(e)
 
 def elevated_Popen(command,
+                        errors = False,
                         prompt = "Resolve Mission Control wants to run sudo"):
 
     command = command_wrap(command, prompt)
@@ -70,7 +80,13 @@ def elevated_Popen(command,
     print("... Errors:")
     print( err )
 
-    return out
+    if 'User canceled' in err:
+        raise(PermissionError("User rejected sudo command authorization"))
+
+    if not errors:
+        return out
+    else:
+        return out, err
 
 def elevated_system(command,
                         prompt = "Resolve Mission Control wants to run sudo"):
