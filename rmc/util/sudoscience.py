@@ -68,7 +68,7 @@ def elevated_Popen(command,
 
     command = command_wrap(command, prompt)
 
-    proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE)
+    proc = Popen(command, shell=True, stdout=PIPE, stderr=PIPE, stdin=PIPE)
     out, err = proc.communicate()
 
     out = str(out,'utf-8')

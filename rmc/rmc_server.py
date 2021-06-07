@@ -811,7 +811,7 @@ _This action cannot be undone_""")
 
             except PermissionError as e:
                 UI_Error(self, "Wireguard Configuration Failed",
-                    f"Must be run as root\n>>> sudo python rmc_server.py\n\n{e}")
+                    f"Must be run as root\n\n{e}")
                 return
 
         elif user_platform == 'windows':
