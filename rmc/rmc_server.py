@@ -657,6 +657,12 @@ _This action cannot be undone_""")
         hba_file = None
         connection = None
 
+        if platform.system().lower() == 'darwin':
+            default_hba_text = default_hba.default_hba_macos
+
+        elif platform.system().lower() == 'windows':
+            default_hba_text = default_hba.default_hba_windows
+
         for db, ui_db in self.dbses.ui_dbses.items():
 
             self.dbses.select(ui_db.db_details, fail_queitly = True)
@@ -743,6 +749,11 @@ _This action cannot be undone_""")
 
             elif user_platform == 'windows':
 
+                hba = str(default_hba_text)
+
+                for hba_line in hba_lines:
+                    hba += hba_line + '\n'
+
                 # Backup
                 backup_file = Path(hba_file).parent / Path("pg_hba_rmcsbackup.conf")
 
@@ -767,9 +778,9 @@ _This action cannot be undone_""")
                 else:
                     self.message.setText("__Host-Based Authentication failed to update__")
 
-
                 # True if suceeded, False if failed
                 return out
+
             else:
                 raise(Exception(f"Platform {user_platform} is not supported"))
 
@@ -863,7 +874,7 @@ _This action cannot be undone_""")
             status = self.wireguard.up()
             self.message.setText(f"Wireguard tunnel{status} open!")
 
-            if not 'failed' in status:
+            if status is None or not 'failed' in status:
                 self.b_tunn.setText("Deactivate Tunnel")
 
         else:
@@ -871,10 +882,10 @@ _This action cannot be undone_""")
             status = self.wireguard.down()
             self.message.setText(f"Wireguard tunnel{status} closed!")
 
-            if not 'failed' in status:
+            if status is None or 'failed' in status:
                 self.b_tunn.setText("Activate Tunnel")
 
-        if not 'failed' in status:
+        if status is None or 'failed' in status:
             self.b_tunn.setChecked(state)
         else:
             self.b_tunn.setChecked(not state)
