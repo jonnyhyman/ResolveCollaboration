@@ -1,3 +1,8 @@
+
+## NOTE : [DaVinci Resolve 18](https://www.blackmagicdesign.com/products/davinciresolve/whatsnew) introduced high performance global Cloud Collaboration. This code is available for reference but will no longer be maintained (4-20-2022)
+
+----
+
 <center><img src="https://github.com/jonnyhyman/ResolveCollaboration/blob/main/images/RMC_crop.png?raw=true" alt="" width="1000"/></center>
 
 #### Work on **DaVinci Resolve 17** Live Collaboration projects __with anyone, from anywhere__
